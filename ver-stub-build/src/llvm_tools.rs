@@ -40,8 +40,7 @@ impl LlvmTools {
             .output()?;
 
         if !output.status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
+            return Err(io::Error::other(
                 format!("llvm-readobj failed with status {}", output.status),
             ));
         }
@@ -115,8 +114,7 @@ impl LlvmTools {
             .status()?;
 
         if !status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
+            return Err(io::Error::other(
                 format!("llvm-objcopy failed with status {}", status),
             ));
         }
@@ -156,15 +154,14 @@ impl LlvmTools {
         let mut stdin = child
             .stdin
             .take()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "failed to open stdin"))?;
+            .ok_or_else(|| io::Error::other("failed to open stdin"))?;
         stdin.write_all(bytes)?;
         drop(stdin); // Close the pipe
 
         let status = child.wait()?;
 
         if !status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
+            return Err(io::Error::other(
                 format!("llvm-objcopy failed with status {}", status),
             ));
         }

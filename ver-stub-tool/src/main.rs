@@ -7,10 +7,10 @@ use ver_stub_build::LinkSection;
 /// Two modes of operation:
 ///
 /// 1. Generate section data file (for use with cargo objcopy):
-///      ver-stub --all-git -o target/ver_stub_data
+///    ver-stub --all-git -o target/ver_stub_data
 ///
 /// 2. Patch a binary directly (recommended):
-///      ver-stub --all-git --build-timestamp patch target/release/my-bin
+///    ver-stub --all-git --build-timestamp patch target/release/my-bin
 ///
 /// The patch command produces a new binary with .bin extension containing the version info.
 ///
