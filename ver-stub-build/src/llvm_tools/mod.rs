@@ -1,11 +1,14 @@
 //! LLVM tools wrapper for section manipulation.
 
+mod parsing;
+
 use std::env::consts::EXE_SUFFIX;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use crate::rustc;
+use parsing::{BinaryFormat, parse_elf_sections, parse_macho_sections};
 
 /// Information about a section in a binary.
 #[derive(Debug, Clone)]
@@ -58,122 +61,27 @@ impl LlvmTools {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
 
-        // Parse llvm-readobj --sections output to find our section.
-        //
-        // ELF format:
-        //   Section {
-        //     Index: 16
-        //     Name: .ver_stub (472)
-        //     Type: SHT_PROGBITS (0x1)
-        //     ...
-        //     Size: 512
-        //   }
-        //
-        // Mach-O format:
-        //   Section {
-        //     Index: 0
-        //     Name: __ver_stub (hex...)
-        //     Segment: __TEXT (hex...)
-        //     ...
-        //     Size: 512
-        //   }
-        //
-        // For Mach-O, section_name is "segment,section" (e.g., "__TEXT,__ver_stub"),
-        // so we need to track both segment and name to match.
-
-        // Helper to extract name from "Name: foo (hex...)" or "Segment: bar (hex...)"
-        fn extract_name(line: &str, prefix: &str) -> Option<String> {
-            let part = line.strip_prefix(prefix)?;
-            let name = match part.find('(') {
-                Some(idx) => part[..idx].trim(),
-                None => part.trim(),
-            };
-            Some(name.to_string())
-        }
-
-        let mut current_segment: Option<String> = None;
-        let mut current_name: Option<String> = None;
-        let mut in_target_section = false;
-        let mut current_size: Option<usize> = None;
-        let mut current_is_writable = false;
-
-        for line in stdout.lines() {
-            let trimmed = line.trim();
-
-            // Track segment (Mach-O only)
-            if let Some(seg) = extract_name(trimmed, "Segment:") {
-                current_segment = Some(seg.clone());
-                // On Mach-O, __DATA segment is writable, __TEXT is not
-                current_is_writable = seg == "__DATA";
-                // Check if we now match the target section
-                if let Some(ref name) = current_name {
-                    let full_name =
-                        format!("{},{}", current_segment.as_deref().unwrap_or(""), name);
-                    in_target_section = name == section_name || full_name == section_name;
-                }
-                continue;
+        // Detect binary format and dispatch to appropriate parser
+        match BinaryFormat::detect(&stdout) {
+            BinaryFormat::Elf => parse_elf_sections(&stdout, section_name),
+            BinaryFormat::MachO => parse_macho_sections(&stdout, section_name),
+            BinaryFormat::Coff => {
+                eprintln!("COFF/PE format not yet supported. llvm-readobj output:");
+                eprintln!("{}", stdout);
+                Err(io::Error::new(
+                    io::ErrorKind::Unsupported,
+                    "COFF/PE format not yet supported",
+                ))
             }
-
-            // Track section name
-            if let Some(name) = extract_name(trimmed, "Name:") {
-                current_name = Some(name.clone());
-                // For ELF, segment is None, so we just match the name directly.
-                // For Mach-O, we might not have seen Segment yet, so check both possibilities.
-                let full_name = match &current_segment {
-                    Some(seg) => format!("{},{}", seg, name),
-                    None => name.clone(),
-                };
-                in_target_section = name == section_name || full_name == section_name;
-                continue;
-            }
-
-            // Track size
-            if in_target_section && let Some(size_str) = trimmed.strip_prefix("Size:") {
-                let size_str = size_str.trim();
-                // Parse size - may be decimal (ELF) or hex with 0x prefix (Mach-O)
-                let size = if let Some(hex) = size_str.strip_prefix("0x") {
-                    usize::from_str_radix(hex, 16)
-                } else {
-                    size_str.parse::<usize>()
-                }
-                .map_err(|e| {
-                    io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        format!("failed to parse section size '{}': {}", size_str, e),
-                    )
-                })?;
-                current_size = Some(size);
-                continue;
-            }
-
-            // Track flags (ELF) - check for SHF_WRITE
-            if in_target_section && trimmed.contains("SHF_WRITE") {
-                current_is_writable = true;
-                continue;
-            }
-
-            // End of section - return if we found our target
-            if trimmed == "}"
-                && in_target_section
-                && let Some(size) = current_size
-            {
-                return Ok(Some(SectionInfo {
-                    size,
-                    is_writable: current_is_writable,
-                }));
-            }
-
-            // Reset on new section
-            if trimmed == "Section {" {
-                current_segment = None;
-                current_name = None;
-                in_target_section = false;
-                current_size = None;
-                current_is_writable = false;
+            BinaryFormat::Unknown => {
+                eprintln!("Could not detect binary format. llvm-readobj output:");
+                eprintln!("{}", stdout);
+                Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "could not detect binary format from llvm-readobj output",
+                ))
             }
         }
-
-        Ok(None)
     }
 
     /// Gets the size of a section in a binary.
