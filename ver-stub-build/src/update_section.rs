@@ -83,9 +83,9 @@ impl UpdateSectionCommand {
             )
         });
 
-        // Get section size from the binary
-        let section_size = llvm
-            .get_section_size(&self.bin_path, SECTION_NAME)
+        // Get section info from the binary
+        let section_info = llvm
+            .get_section_info(&self.bin_path, SECTION_NAME)
             .unwrap_or_else(|e| {
                 panic!(
                     "ver-stub-build: failed to read section info from {}: {}",
@@ -94,12 +94,20 @@ impl UpdateSectionCommand {
                 )
             });
 
-        match section_size {
-            Some(size) => {
+        match section_info {
+            Some(info) => {
+                // Warn if section is writable (should be read-only for security)
+                if info.is_writable {
+                    cargo_warning(&format!(
+                        "section '{}' is writable; consider placing it in a read-only segment",
+                        SECTION_NAME
+                    ));
+                }
+
                 // Build section data with the correct buffer size from the binary
                 let section_bytes = self
                     .link_section
-                    .with_buffer_size(size)
+                    .with_buffer_size(info.size)
                     .build_section_bytes();
 
                 llvm.update_section_with_bytes(

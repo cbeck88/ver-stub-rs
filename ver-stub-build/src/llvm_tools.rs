@@ -7,6 +7,16 @@ use std::process::{Command, Stdio};
 
 use crate::rustc;
 
+/// Information about a section in a binary.
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub struct SectionInfo {
+    /// Size of the section in bytes.
+    pub size: usize,
+    /// Whether the section is writable (has SHF_WRITE on ELF, or is in __DATA segment on Mach-O).
+    pub is_writable: bool,
+}
+
 /// Wrapper for LLVM tools (llvm-readobj, llvm-objcopy).
 ///
 /// This provides access to LLVM tools from the Rust toolchain for reading
@@ -22,15 +32,15 @@ impl LlvmTools {
         Ok(Self { bin_dir })
     }
 
-    /// Gets the size of a section in a binary.
+    /// Gets information about a section in a binary.
     ///
-    /// Returns `Ok(Some(size))` if the section exists, `Ok(None)` if it doesn't,
+    /// Returns `Ok(Some(SectionInfo))` if the section exists, `Ok(None)` if it doesn't,
     /// or `Err` if there was an error executing llvm-readobj or parsing the output.
-    pub fn get_section_size(
+    pub fn get_section_info(
         &self,
         bin: impl AsRef<Path>,
         section_name: &str,
-    ) -> io::Result<Option<usize>> {
+    ) -> io::Result<Option<SectionInfo>> {
         let bin = bin.as_ref();
         let readobj_path = self.bin_dir.join(format!("llvm-readobj{}", EXE_SUFFIX));
 
@@ -84,13 +94,17 @@ impl LlvmTools {
         let mut current_segment: Option<String> = None;
         let mut current_name: Option<String> = None;
         let mut in_target_section = false;
+        let mut current_size: Option<usize> = None;
+        let mut current_is_writable = false;
 
         for line in stdout.lines() {
             let trimmed = line.trim();
 
             // Track segment (Mach-O only)
             if let Some(seg) = extract_name(trimmed, "Segment:") {
-                current_segment = Some(seg);
+                current_segment = Some(seg.clone());
+                // On Mach-O, __DATA segment is writable, __TEXT is not
+                current_is_writable = seg == "__DATA";
                 // Check if we now match the target section
                 if let Some(ref name) = current_name {
                     let full_name =
@@ -113,7 +127,7 @@ impl LlvmTools {
                 continue;
             }
 
-            // If we're in the target section, look for the Size line
+            // Track size
             if in_target_section && let Some(size_str) = trimmed.strip_prefix("Size:") {
                 let size_str = size_str.trim();
                 // Parse size - may be decimal (ELF) or hex with 0x prefix (Mach-O)
@@ -128,7 +142,24 @@ impl LlvmTools {
                         format!("failed to parse section size '{}': {}", size_str, e),
                     )
                 })?;
-                return Ok(Some(size));
+                current_size = Some(size);
+                continue;
+            }
+
+            // Track flags (ELF) - check for SHF_WRITE
+            if in_target_section && trimmed.contains("SHF_WRITE") {
+                current_is_writable = true;
+                continue;
+            }
+
+            // End of section - return if we found our target
+            if trimmed == "}" && in_target_section {
+                if let Some(size) = current_size {
+                    return Ok(Some(SectionInfo {
+                        size,
+                        is_writable: current_is_writable,
+                    }));
+                }
             }
 
             // Reset on new section
@@ -136,10 +167,27 @@ impl LlvmTools {
                 current_segment = None;
                 current_name = None;
                 in_target_section = false;
+                current_size = None;
+                current_is_writable = false;
             }
         }
 
         Ok(None)
+    }
+
+    /// Gets the size of a section in a binary.
+    ///
+    /// Returns `Ok(Some(size))` if the section exists, `Ok(None)` if it doesn't,
+    /// or `Err` if there was an error executing llvm-readobj or parsing the output.
+    ///
+    /// This is a convenience wrapper around `get_section_info` that returns only the size.
+    pub fn get_section_size(
+        &self,
+        bin: impl AsRef<Path>,
+        section_name: &str,
+    ) -> io::Result<Option<usize>> {
+        self.get_section_info(bin, section_name)
+            .map(|info| info.map(|i| i.size))
     }
 
     /// Updates a section in a binary using llvm-objcopy.

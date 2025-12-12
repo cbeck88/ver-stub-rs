@@ -1,6 +1,6 @@
 use conf::{Conf, Subcommands};
 use std::path::PathBuf;
-use ver_stub_build::LinkSection;
+use ver_stub_build::{LinkSection, LlvmTools};
 
 /// Inject git and build metadata into binaries via the .ver_stub linker section.
 ///
@@ -99,6 +99,17 @@ enum Command {
     /// Useful for scripts that need to use cargo objcopy directly.
     /// Returns ".ver_stub" on ELF (Linux) or "__TEXT,__ver_stub" on Mach-O (macOS).
     PrintSectionName,
+
+    /// Get section info from a binary and print it.
+    ///
+    /// Example: ver-stub get-section-info target/release/my-bin
+    ///
+    /// Prints the section name and detailed info (size, writability) using debug formatting.
+    GetSectionInfo {
+        /// Path to the binary to inspect
+        #[conf(pos)]
+        input: PathBuf,
+    },
 }
 
 fn build_section(args: &Args) -> LinkSection {
@@ -183,6 +194,23 @@ fn main() {
         }
         Some(Command::PrintSectionName) => {
             println!("{}", ver_stub_build::SECTION_NAME);
+        }
+        Some(Command::GetSectionInfo { ref input }) => {
+            let llvm = LlvmTools::new().unwrap_or_else(|e| {
+                eprintln!("error: could not find LLVM tools: {}", e);
+                eprintln!("Please install llvm-tools: rustup component add llvm-tools");
+                std::process::exit(1);
+            });
+            let section_name = ver_stub_build::SECTION_NAME;
+            let info = llvm.get_section_info(input, section_name).unwrap_or_else(|e| {
+                eprintln!("error: failed to read section info from {}: {}", input.display(), e);
+                std::process::exit(1);
+            });
+            println!("section: {}", section_name);
+            match info {
+                Some(info) => println!("{:#?}", info),
+                None => println!("(not found)"),
+            }
         }
         None => {
             let Some(output) = args.output else {

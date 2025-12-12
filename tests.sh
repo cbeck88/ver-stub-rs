@@ -44,7 +44,18 @@ echo "--- Test: Build objcopy example (debug) ---"
 pass "objcopy example builds in debug mode"
 echo
 
-# Test 2: Unpatched binary should show "(not set)" and not panic
+# Test 2: Section should exist and be read-only
+echo "--- Test: Section exists and is read-only ---"
+OUTPUT=$($VER_STUB get-section-info ver-stub-example/target/debug/ver-stub-example 2>&1)
+echo "$OUTPUT"
+if echo "$OUTPUT" | grep -q "is_writable: false"; then
+    pass "section is read-only (is_writable: false)"
+else
+    fail "section should be read-only"
+fi
+echo
+
+# Test 3: Unpatched binary should show "(not set)" and not panic
 echo "--- Test: Unpatched binary shows '(not set)' ---"
 OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example 2>&1)
 if echo "$OUTPUT" | grep -q "(not set)"; then
@@ -54,14 +65,14 @@ else
 fi
 echo
 
-# Test 3: Patch binary with ver-stub patch (debug)
+# Test 4: Patch binary with ver-stub patch (debug)
 echo "--- Test: Patch binary with ver-stub patch (debug) ---"
 $VER_STUB --all-git --all-build-time patch \
     ver-stub-example/target/debug/ver-stub-example 2>&1
 pass "ver-stub patch works in debug mode"
 echo
 
-# Test 4: Patched binary should show git info
+# Test 5: Patched binary should show git info
 echo "--- Test: Patched binary shows git info ---"
 OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
 if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
@@ -76,7 +87,7 @@ else
 fi
 echo
 
-# Test 5: Build and patch objcopy example (release)
+# Test 6: Build and patch objcopy example (release)
 echo "--- Test: Build and patch objcopy example (release) ---"
 (cd ver-stub-example && cargo build --release 2>&1)
 $VER_STUB --all-git --all-build-time patch \
@@ -89,7 +100,7 @@ else
 fi
 echo
 
-# Test 6: Alternative approach - ver-stub -o + cargo objcopy
+# Test 7: Alternative approach - ver-stub -o + cargo objcopy
 echo "--- Test: Alternative approach (ver-stub -o + cargo objcopy) ---"
 # Generate section data file
 $VER_STUB --all-git --all-build-time -o ver-stub-example/target/ver_stub_data 2>&1
@@ -106,7 +117,7 @@ else
 fi
 echo
 
-# Test 7: Build nightly example (ver-stub-example-build)
+# Test 8: Build nightly example (ver-stub-example-build)
 echo "--- Test: Build nightly example (ver-stub-example-build) ---"
 (cd ver-stub-example-build && cargo +nightly build 2>&1)
 OUTPUT=$(./ver-stub-example-build/target/debug/ver-stub-example.bin 2>&1)
@@ -117,7 +128,7 @@ else
 fi
 echo
 
-# Test 8: VER_STUB_BUFFER_SIZE=1024 should work
+# Test 9: VER_STUB_BUFFER_SIZE=1024 should work
 echo "--- Test: VER_STUB_BUFFER_SIZE=1024 works ---"
 if (cd ver-stub-example && VER_STUB_BUFFER_SIZE=1024 cargo build 2>&1); then
     pass "VER_STUB_BUFFER_SIZE=1024 works"
@@ -126,7 +137,7 @@ else
 fi
 echo
 
-# Test 8: VER_STUB_BUFFER_SIZE=65535 should work
+# Test 10: VER_STUB_BUFFER_SIZE=65535 should work
 echo "--- Test: VER_STUB_BUFFER_SIZE=65535 (max u16) works ---"
 if (cd ver-stub-example && VER_STUB_BUFFER_SIZE=65535 cargo build 2>&1); then
     pass "VER_STUB_BUFFER_SIZE=65535 works"
@@ -135,7 +146,7 @@ else
 fi
 echo
 
-# Test 9: VER_STUB_BUFFER_SIZE=65536 should fail
+# Test 11: VER_STUB_BUFFER_SIZE=65536 should fail
 echo "--- Test: VER_STUB_BUFFER_SIZE=65536 (overflow) fails ---"
 if (cd ver-stub-example && VER_STUB_BUFFER_SIZE=65536 cargo build 2>&1); then
     fail "VER_STUB_BUFFER_SIZE=65536 should fail"
@@ -144,7 +155,7 @@ else
 fi
 echo
 
-# Test 10: VER_STUB_BUFFER_SIZE=32 (too small) should fail
+# Test 12: VER_STUB_BUFFER_SIZE=32 (too small) should fail
 echo "--- Test: VER_STUB_BUFFER_SIZE=32 (too small) fails ---"
 if (cd ver-stub-example && VER_STUB_BUFFER_SIZE=32 cargo build 2>&1); then
     fail "VER_STUB_BUFFER_SIZE=32 should fail (must be > 32)"
@@ -153,12 +164,12 @@ else
 fi
 echo
 
-# Build a baseline before VER_STUB_BUILD_TIME tests (test 10 left things in a failed state)
+# Build a baseline before VER_STUB_BUILD_TIME tests (test 12 left things in a failed state)
 echo "--- Building baseline for VER_STUB_BUILD_TIME tests ---"
 (cd ver-stub-example && cargo build 2>&1)
 echo
 
-# Test 11: VER_STUB_BUILD_TIME with unix timestamp
+# Test 13: VER_STUB_BUILD_TIME with unix timestamp
 echo "--- Test: VER_STUB_BUILD_TIME with unix timestamp ---"
 VER_STUB_BUILD_TIME=1700000000 $VER_STUB --all-git --all-build-time patch \
     ver-stub-example/target/debug/ver-stub-example 2>&1
@@ -170,7 +181,7 @@ else
 fi
 echo
 
-# Test 12: VER_STUB_BUILD_TIME with RFC 3339
+# Test 14: VER_STUB_BUILD_TIME with RFC 3339
 echo "--- Test: VER_STUB_BUILD_TIME with RFC 3339 ---"
 VER_STUB_BUILD_TIME="2024-06-15T12:30:00Z" $VER_STUB --all-git --all-build-time patch \
     ver-stub-example/target/debug/ver-stub-example 2>&1
@@ -182,7 +193,7 @@ else
 fi
 echo
 
-# Test 13: VER_STUB_BUILD_TIME with invalid value should fail
+# Test 15: VER_STUB_BUILD_TIME with invalid value should fail
 echo "--- Test: VER_STUB_BUILD_TIME with invalid value fails ---"
 if VER_STUB_BUILD_TIME="not-a-timestamp" $VER_STUB --all-git --all-build-time patch \
     ver-stub-example/target/debug/ver-stub-example 2>&1; then
@@ -192,7 +203,7 @@ else
 fi
 echo
 
-# Test 14: VER_STUB_IDEMPOTENT skips build time
+# Test 16: VER_STUB_IDEMPOTENT skips build time
 echo "--- Test: VER_STUB_IDEMPOTENT skips build time ---"
 VER_STUB_IDEMPOTENT=1 $VER_STUB --all-git --all-build-time patch \
     ver-stub-example/target/debug/ver-stub-example 2>&1
@@ -210,7 +221,7 @@ else
 fi
 echo
 
-# Test 15: Patching updates git info without rebuild
+# Test 17: Patching updates git info without rebuild
 echo "--- Test: Patching updates git info without rebuild ---"
 
 # Get current branch for later comparison
