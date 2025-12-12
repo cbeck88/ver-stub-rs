@@ -46,7 +46,7 @@ echo
 
 # Test 2: Section should exist and be read-only
 echo "--- Test: Section exists and is read-only ---"
-OUTPUT=$($VER_STUB get-section-info ver-stub-example/target/debug/ver-stub-example 2>&1)
+OUTPUT=$($VER_STUB get-section-info ver-stub-example/target/debug/ver-stub-example 2>&1) || true
 echo "$OUTPUT"
 if echo "$OUTPUT" | grep -q "is_writable: false"; then
     pass "section is read-only (is_writable: false)"
