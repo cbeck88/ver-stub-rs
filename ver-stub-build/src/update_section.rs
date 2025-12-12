@@ -1,5 +1,6 @@
 //! Update section command for patching artifact dependency binaries.
 
+use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -60,7 +61,13 @@ impl UpdateSectionCommand {
                 .file_name()
                 .and_then(|s| s.to_str())
                 .unwrap_or("output");
-            let default_name = format!("{}.bin", original_name);
+            // Strip .exe suffix if present, add .bin, then re-add platform suffix
+            // Unix: my_prog -> my_prog.bin
+            // Windows: my_prog.exe -> my_prog.bin.exe
+            let base_name = original_name
+                .strip_suffix(EXE_SUFFIX)
+                .unwrap_or(original_name);
+            let default_name = format!("{}.bin{}", base_name, EXE_SUFFIX);
             let output_name = self.new_name.as_deref().unwrap_or(&default_name);
             path.join(output_name)
         } else {

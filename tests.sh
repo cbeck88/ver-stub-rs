@@ -3,11 +3,22 @@ set -e
 
 cd "$(dirname "$0")"
 
+# Detect Windows and set executable extension
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*|Windows_NT)
+        EXE_SUFFIX=".exe"
+        ;;
+    *)
+        EXE_SUFFIX=""
+        ;;
+esac
+
 echo "=== Testing ver-stub-rs ==="
 echo
 echo "Environment:"
 cargo --version
 rustc --version
+echo "EXE_SUFFIX: '$EXE_SUFFIX'"
 echo
 
 # Colors for output
@@ -33,7 +44,7 @@ echo
 # Build the ver-stub CLI tool first
 echo "--- Building ver-stub CLI tool ---"
 cargo build -p ver-stub-tool 2>&1
-VER_STUB="$(pwd)/target/debug/ver-stub"
+VER_STUB="$(pwd)/target/debug/ver-stub${EXE_SUFFIX}"
 SECTION_NAME=$($VER_STUB print-section-name)
 echo "Section name: $SECTION_NAME"
 echo
@@ -46,7 +57,7 @@ echo
 
 # Test 2: Section should exist and be read-only
 echo "--- Test: Section exists and is read-only ---"
-OUTPUT=$($VER_STUB get-section-info ver-stub-example/target/debug/ver-stub-example 2>&1) || true
+OUTPUT=$($VER_STUB get-section-info ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1) || true
 echo "$OUTPUT"
 if echo "$OUTPUT" | grep -q "is_writable: false"; then
     pass "section is read-only (is_writable: false)"
@@ -57,7 +68,7 @@ echo
 
 # Test 3: Unpatched binary should show "(not set)" and not panic
 echo "--- Test: Unpatched binary shows '(not set)' ---"
-OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example 2>&1)
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1)
 if echo "$OUTPUT" | grep -q "(not set)"; then
     pass "unpatched binary shows '(not set)'"
 else
@@ -68,13 +79,13 @@ echo
 # Test 4: Patch binary with ver-stub patch (debug)
 echo "--- Test: Patch binary with ver-stub patch (debug) ---"
 $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example/target/debug/ver-stub-example 2>&1
+    ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1
 pass "ver-stub patch works in debug mode"
 echo
 
 # Test 5: Patched binary should show git info
 echo "--- Test: Patched binary shows git info ---"
-OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin${EXE_SUFFIX} 2>&1)
 if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
     pass "patched binary shows git sha"
 else
@@ -91,8 +102,8 @@ echo
 echo "--- Test: Build and patch objcopy example (release) ---"
 (cd ver-stub-example && cargo build --release 2>&1)
 $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example/target/release/ver-stub-example 2>&1
-OUTPUT=$(./ver-stub-example/target/release/ver-stub-example.bin 2>&1)
+    ver-stub-example/target/release/ver-stub-example${EXE_SUFFIX} 2>&1
+OUTPUT=$(./ver-stub-example/target/release/ver-stub-example.bin${EXE_SUFFIX} 2>&1)
 if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
     pass "objcopy example works in release mode"
 else
@@ -108,8 +119,8 @@ $VER_STUB --all-git --all-build-time -o ver-stub-example/target/ver_stub_data 2>
 cargo objcopy --manifest-path ver-stub-example/Cargo.toml \
     --bin ver-stub-example -- \
     --update-section "$SECTION_NAME"=ver-stub-example/target/ver_stub_data \
-    ver-stub-example/target/debug/ver-stub-example-alt.bin 2>&1
-OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example-alt.bin 2>&1)
+    ver-stub-example/target/debug/ver-stub-example-alt.bin${EXE_SUFFIX} 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example-alt.bin${EXE_SUFFIX} 2>&1)
 if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
     pass "alternative approach (ver-stub -o + cargo objcopy) works"
 else
@@ -120,7 +131,7 @@ echo
 # Test 8: Build nightly example (ver-stub-example-build)
 echo "--- Test: Build nightly example (ver-stub-example-build) ---"
 (cd ver-stub-example-build && cargo +nightly build 2>&1)
-OUTPUT=$(./ver-stub-example-build/target/debug/ver-stub-example.bin 2>&1)
+OUTPUT=$(./ver-stub-example-build/target/debug/ver-stub-example.bin${EXE_SUFFIX} 2>&1)
 if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
     pass "nightly example builds and works"
 else
@@ -172,8 +183,8 @@ echo
 # Test 13: VER_STUB_BUILD_TIME with unix timestamp
 echo "--- Test: VER_STUB_BUILD_TIME with unix timestamp ---"
 VER_STUB_BUILD_TIME=1700000000 $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example/target/debug/ver-stub-example 2>&1
-OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
+    ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin${EXE_SUFFIX} 2>&1)
 if echo "$OUTPUT" | grep -q "build timestamp: 2023-11-14"; then
     pass "VER_STUB_BUILD_TIME unix timestamp works (2023-11-14)"
 else
@@ -184,8 +195,8 @@ echo
 # Test 14: VER_STUB_BUILD_TIME with RFC 3339
 echo "--- Test: VER_STUB_BUILD_TIME with RFC 3339 ---"
 VER_STUB_BUILD_TIME="2024-06-15T12:30:00Z" $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example/target/debug/ver-stub-example 2>&1
-OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
+    ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin${EXE_SUFFIX} 2>&1)
 if echo "$OUTPUT" | grep -q "build timestamp: 2024-06-15"; then
     pass "VER_STUB_BUILD_TIME RFC 3339 works (2024-06-15)"
 else
@@ -196,7 +207,7 @@ echo
 # Test 15: VER_STUB_BUILD_TIME with invalid value should fail
 echo "--- Test: VER_STUB_BUILD_TIME with invalid value fails ---"
 if VER_STUB_BUILD_TIME="not-a-timestamp" $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example/target/debug/ver-stub-example 2>&1; then
+    ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1; then
     fail "VER_STUB_BUILD_TIME with invalid value should fail"
 else
     pass "VER_STUB_BUILD_TIME with invalid value correctly fails"
@@ -206,8 +217,8 @@ echo
 # Test 16: VER_STUB_IDEMPOTENT skips build time
 echo "--- Test: VER_STUB_IDEMPOTENT skips build time ---"
 VER_STUB_IDEMPOTENT=1 $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example/target/debug/ver-stub-example 2>&1
-OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
+    ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin${EXE_SUFFIX} 2>&1)
 if echo "$OUTPUT" | grep -qE "build timestamp:\s+\(not set\)" && echo "$OUTPUT" | grep -qE "build date:\s+\(not set\)"; then
     pass "VER_STUB_IDEMPOTENT skips build timestamp and date"
 else
@@ -231,8 +242,8 @@ ORIGINAL_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 git branch -D testtesttesttest 2>/dev/null || true
 (cd ver-stub-example && cargo clean 2>/dev/null || true)
 (cd ver-stub-example && cargo build 2>&1)
-$VER_STUB --all-git patch ver-stub-example/target/debug/ver-stub-example 2>&1
-OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
+$VER_STUB --all-git patch ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin${EXE_SUFFIX} 2>&1)
 # Use regex to match "git branch:" followed by whitespace and branch name
 if echo "$OUTPUT" | grep -qE "git branch:\s+$ORIGINAL_BRANCH"; then
     pass "initial build shows branch '$ORIGINAL_BRANCH'"
@@ -252,8 +263,8 @@ else
     pass "no recompilation after branch switch"
 fi
 
-$VER_STUB --all-git patch ver-stub-example/target/debug/ver-stub-example 2>&1
-OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
+$VER_STUB --all-git patch ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin${EXE_SUFFIX} 2>&1)
 if echo "$OUTPUT" | grep -qE "git branch:\s+testtesttesttest"; then
     pass "patched binary shows new branch 'testtesttesttest'"
 else
@@ -272,8 +283,8 @@ else
     pass "no recompilation after reflog checkout"
 fi
 
-$VER_STUB --all-git patch ver-stub-example/target/debug/ver-stub-example 2>&1
-OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
+$VER_STUB --all-git patch ver-stub-example/target/debug/ver-stub-example${EXE_SUFFIX} 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin${EXE_SUFFIX} 2>&1)
 # In detached HEAD state, git rev-parse --abbrev-ref HEAD returns "HEAD"
 if echo "$OUTPUT" | grep -qE "git branch:\s+HEAD"; then
     pass "patched binary shows detached HEAD after reflog checkout"
