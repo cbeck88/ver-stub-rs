@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = [
+    "ver-stub",
+    "ver-stub-build",
+    "ver-stub-tool",
+]
+exclude = [
+    "ver-stub-example",
+    "ver-stub-example-build",
+    "ver-stub-example-objcopy",
+]
+
+[workspace.package]
+authors = ["Chris Beck <beck.ct@gmail.com>"]
+repository = "https://github.com/cbeck88/ver-stub-rs"
+license = "MIT OR Apache-2.0"
+edition = "2024"
+keywords = ["version", "git", "build", "linker", "no_std"]
+categories = ["development-tools::build-utils"]
+include = [
+    "src/**/*",
+    "build.rs",
+    "Cargo.toml",
+    "README.md",
+]

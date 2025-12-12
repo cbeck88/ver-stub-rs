@@ -1,0 +1,15 @@
+[package]
+name = "ver-stub"
+version = "0.1.0"
+description = "Runtime access to version data injected via link section"
+readme = "README.md"
+links = ".ver_stub"
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+
+[lib]

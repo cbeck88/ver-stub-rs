@@ -1,0 +1,7 @@
+[package]
+name = "ver-stub-example-objcopy"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ver-stub = { path = "../ver-stub" }
