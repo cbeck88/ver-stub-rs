@@ -235,3 +235,75 @@ fn matches_macho_section(
     // No segment specified in target, name match is enough
     true
 }
+
+/// Parse COFF/PE section info from llvm-readobj output.
+///
+/// COFF format:
+/// ```text
+/// Section {
+///   Number: 5
+///   Name: ver_stub (76 65 72 5F 73 74 75 62)
+///   VirtualSize: 0x200
+///   VirtualAddress: 0x27000
+///   RawDataSize: 512
+///   ...
+///   Characteristics [ (0x40000040)
+///     IMAGE_SCN_CNT_INITIALIZED_DATA (0x40)
+///     IMAGE_SCN_MEM_READ (0x40000000)
+///     IMAGE_SCN_MEM_WRITE (0x80000000)  // if writable
+///   ]
+/// }
+/// ```
+///
+/// Note: COFF section names are limited to 8 characters. We use `ver_stub` (8 chars)
+/// to fit within this limit.
+pub(super) fn parse_coff_sections(
+    output: &str,
+    section_name: &str,
+) -> io::Result<Option<SectionInfo>> {
+    let mut in_target_section = false;
+    let mut current_size: Option<usize> = None;
+    let mut current_is_writable = false;
+
+    for line in output.lines() {
+        let trimmed = line.trim();
+
+        // Track section name
+        if let Some(name) = extract_name(trimmed, "Name:") {
+            in_target_section = name == section_name;
+            continue;
+        }
+
+        // Track size (COFF uses RawDataSize)
+        if in_target_section && let Some(size_str) = trimmed.strip_prefix("RawDataSize:") {
+            current_size = Some(parse_size(size_str)?);
+            continue;
+        }
+
+        // Track characteristics - check for IMAGE_SCN_MEM_WRITE
+        if in_target_section && trimmed.contains("IMAGE_SCN_MEM_WRITE") {
+            current_is_writable = true;
+            continue;
+        }
+
+        // End of section - return if we found our target
+        if trimmed == "}"
+            && in_target_section
+            && let Some(size) = current_size
+        {
+            return Ok(Some(SectionInfo {
+                size,
+                is_writable: current_is_writable,
+            }));
+        }
+
+        // Reset on new section
+        if trimmed == "Section {" {
+            in_target_section = false;
+            current_size = None;
+            current_is_writable = false;
+        }
+    }
+
+    Ok(None)
+}

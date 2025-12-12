@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use crate::rustc;
-use parsing::{BinaryFormat, parse_elf_sections, parse_macho_sections};
+use parsing::{BinaryFormat, parse_coff_sections, parse_elf_sections, parse_macho_sections};
 
 /// Information about a section in a binary.
 #[derive(Debug, Clone)]
@@ -70,14 +70,7 @@ impl LlvmTools {
         match BinaryFormat::detect(&stdout) {
             BinaryFormat::Elf => parse_elf_sections(&stdout, section_name),
             BinaryFormat::MachO => parse_macho_sections(&stdout, section_name),
-            BinaryFormat::Coff => {
-                eprintln!("COFF/PE format not yet supported. llvm-readobj output:");
-                eprintln!("{}", stdout);
-                Err(io::Error::new(
-                    io::ErrorKind::Unsupported,
-                    "COFF/PE format not yet supported",
-                ))
-            }
+            BinaryFormat::Coff => parse_coff_sections(&stdout, section_name),
             BinaryFormat::Unknown => {
                 eprintln!("Could not detect binary format. llvm-readobj output:");
                 eprintln!("{}", stdout);

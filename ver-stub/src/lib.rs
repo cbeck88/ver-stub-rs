@@ -2,7 +2,7 @@
 //!
 //! This crate provides a way to access git version information that has been
 //! injected into the binary via a platform-specific link section
-//! (`.ver_stub` on ELF, `__TEXT,__ver_stub` on Mach-O).
+//! (`ver_stub` on ELF/COFF, `__TEXT,__ver_stub` on Mach-O).
 //!
 //! The section format is:
 //! - First byte: number of members in the section (for forward compatibility)
@@ -60,7 +60,7 @@ const _: () = assert!(
 
 /// The section name used for version data (platform-specific).
 ///
-/// On ELF (Linux, etc.): `.ver_stub`
+/// On ELF (Linux, etc.) and COFF (Windows): `ver_stub`
 /// On Mach-O (macOS): `__TEXT,__ver_stub`
 ///
 /// This is useful for scripts that need to use `cargo objcopy` directly.
@@ -69,12 +69,12 @@ pub const SECTION_NAME: &str = "__TEXT,__ver_stub";
 
 /// The section name used for version data (platform-specific).
 ///
-/// On ELF (Linux, etc.): `.ver_stub`
+/// On ELF (Linux, etc.) and COFF (Windows): `ver_stub`
 /// On Mach-O (macOS): `__TEXT,__ver_stub`
 ///
 /// This is useful for scripts that need to use `cargo objcopy` directly.
 #[cfg(not(target_os = "macos"))]
-pub const SECTION_NAME: &str = ".ver_stub";
+pub const SECTION_NAME: &str = "ver_stub";
 
 // Members that can be stored in the version data.
 #[doc(hidden)]
@@ -104,7 +104,7 @@ impl Member {
 // only one version of this crate appears in the build graph, and so only one
 // version of the BUFFER exists, and BUFFER_SIZE = section size.
 #[cfg_attr(target_os = "macos", unsafe(link_section = "__TEXT,__ver_stub"))]
-#[cfg_attr(not(target_os = "macos"), unsafe(link_section = ".ver_stub"))]
+#[cfg_attr(not(target_os = "macos"), unsafe(link_section = "ver_stub"))]
 #[used]
 static BUFFER: [u8; BUFFER_SIZE] = [0u8; BUFFER_SIZE];
 
