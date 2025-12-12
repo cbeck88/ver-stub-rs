@@ -16,7 +16,7 @@ This is particularly helpful if:
 * You have multiple binaries in your workspace and rebuilding them all is slow
 * You are using build options like LTO which push a lot of work to link time
 
-When I used the popular `vergen` crate to embed this data, I often found myself frustrated
+When I used the popular [`vergen`](https://github.com/rustyhorde/vergen) crate to embed this data, I often found myself frustrated
 because actions like `git commit`, `git tag` or `git checkout -b` would cause the next `cargo build`
 to rebuild many things, but that would cause momentary confusion and make
 me think that I'd accidentally changed code and committed or tagged the wrong thing.
@@ -212,7 +212,7 @@ will be different if you build again later, so the hashes won't match.
 
 `VER_STUB_IDEMPOTENT` takes precedence over `VER_STUB_BUILD_TIME` if both are set.
 
-This is similar to `SOURCE_DATE_EPOCH` in `vergen`.
+These are similar to [`SOURCE_DATE_EPOCH` and `VERGEN_IDEMPOTENT`](https://docs.rs/vergen/latest/vergen/#environment-variables) in `vergen`.
 However, one thing I like about the `ver-stub` approach is that it also helps with the task of debugging non-reproducible builds.
 
 In a large project it can be very complicated to figure out why two engineers got a different binary at the same commit. I once traced this down to the
@@ -240,10 +240,11 @@ name of the custom linker section.
 ### zero copies
 
 It's possible that the binary ends up with 0 copies of the linker section. This happens if you depend on `ver-stub` but then don't actually invoke any of its functions.
-If nothing in the program, after optimizations, references the linker section, it will likely be garbage collected and removed by the linker. This would be fine except
+If nothing in the program, after optimizations, references the linker section, it will likely be garbage collected and removed by the linker. (This is possible
+even if you put `#[used]` on a section, because linker optimizations tend to be very aggressive.) This would be fine except
 that the `objcopy --update-section` command will fail if the section doesn't exist when `objcopy` runs.
 
-The `ver-stub-build` crate automatically detects this and does the right thing, so you won't notice this with the first two methods.
+The `ver-stub-build` crate uses `readobj` to get the section and it's size, and does the right thing if it doesn't exist, so you won't notice this with the first two methods.
 If you are using `cargo objcopy`, however, `objcopy` will fail with an error if this happens. The simplest fix is to actually invoke a `ver-stub` function somewhere
 in `main.rs`.
 
@@ -273,7 +274,13 @@ Most likely not.
 
   If your compiler changes, or your opt level changes, or your cargo features change, cargo already has to rebuild, whether or
   not you additionally inject this stuff as text strings into the source. So there's no advantage to the link-section approach
-  over what `vergen` is doing with `env!`. You might as well use `vergen` for the other types of data.
+  over what `vergen` is doing with `env!` for such data. You might as well use `vergen` for these types of data.
+
+* You can inject whatever you want in the custom string, and that could also be structured data with ASCII separators if you want.
+  (Remember to emit appropriate `cargo::rerun-if-changed-` directives!)
+
+That being said, the link section format is designed to be forwards and backwards compatible, so there is a clear path to extend
+built-in support for more stuff.
 
 ## Licensing and distribution
 
