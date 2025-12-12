@@ -53,6 +53,11 @@ impl LlvmTools {
             .output()?;
 
         if !output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            eprintln!("llvm-readobj failed with status {}", output.status);
+            eprintln!("stdout:\n{}", stdout);
+            eprintln!("stderr:\n{}", stderr);
             return Err(io::Error::other(format!(
                 "llvm-readobj failed with status {}",
                 output.status
@@ -117,17 +122,22 @@ impl LlvmTools {
         let objcopy_path = self.bin_dir.join(format!("llvm-objcopy{}", EXE_SUFFIX));
         let update_arg = format!("{}={}", section_name, section_file.display());
 
-        let status = Command::new(&objcopy_path)
+        let cmd_output = Command::new(&objcopy_path)
             .arg("--update-section")
             .arg(&update_arg)
             .arg(input)
             .arg(output)
-            .status()?;
+            .output()?;
 
-        if !status.success() {
+        if !cmd_output.status.success() {
+            let stdout = String::from_utf8_lossy(&cmd_output.stdout);
+            let stderr = String::from_utf8_lossy(&cmd_output.stderr);
+            eprintln!("llvm-objcopy failed with status {}", cmd_output.status);
+            eprintln!("stdout:\n{}", stdout);
+            eprintln!("stderr:\n{}", stderr);
             return Err(io::Error::other(format!(
                 "llvm-objcopy failed with status {}",
-                status
+                cmd_output.status
             )));
         }
 
@@ -160,6 +170,8 @@ impl LlvmTools {
             .arg(input)
             .arg(output)
             .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .spawn()?;
 
         // Write bytes to stdin and close the pipe
@@ -170,12 +182,17 @@ impl LlvmTools {
         stdin.write_all(bytes)?;
         drop(stdin); // Close the pipe
 
-        let status = child.wait()?;
+        let output = child.wait_with_output()?;
 
-        if !status.success() {
+        if !output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            eprintln!("llvm-objcopy failed with status {}", output.status);
+            eprintln!("stdout:\n{}", stdout);
+            eprintln!("stderr:\n{}", stderr);
             return Err(io::Error::other(format!(
                 "llvm-objcopy failed with status {}",
-                status
+                output.status
             )));
         }
 
