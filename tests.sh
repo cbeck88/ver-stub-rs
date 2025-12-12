@@ -24,13 +24,6 @@ fail() {
     exit 1
 }
 
-# Platform-specific section name
-if [[ "$(uname)" == "Darwin" ]]; then
-    SECTION_NAME="__TEXT,__ver_stub"
-else
-    SECTION_NAME=".ver_stub"
-fi
-
 # Clean up before tests (examples are excluded from workspace, have their own targets)
 echo "Cleaning up..."
 cargo clean 2>/dev/null || true
@@ -41,6 +34,8 @@ echo
 echo "--- Building ver-stub CLI tool ---"
 cargo build -p ver-stub-tool 2>&1
 VER_STUB="$(pwd)/target/debug/ver-stub"
+SECTION_NAME=$($VER_STUB print-section-name)
+echo "Section name: $SECTION_NAME"
 echo
 
 # Test 1: Build objcopy example (debug)

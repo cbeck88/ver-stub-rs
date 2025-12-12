@@ -93,6 +93,12 @@ enum Command {
         #[conf(short, long)]
         output: Option<PathBuf>,
     },
+
+    /// Print the platform-specific linker section name and exit.
+    ///
+    /// Useful for scripts that need to use cargo objcopy directly.
+    /// Returns ".ver_stub" on ELF (Linux) or "__TEXT,__ver_stub" on Mach-O (macOS).
+    PrintSectionName,
 }
 
 fn build_section(args: &Args) -> LinkSection {
@@ -174,6 +180,9 @@ fn main() {
                 input.display(),
                 output_path.display()
             );
+        }
+        Some(Command::PrintSectionName) => {
+            println!("{}", ver_stub_build::SECTION_NAME);
         }
         None => {
             let Some(output) = args.output else {

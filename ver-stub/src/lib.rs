@@ -62,11 +62,17 @@ const _: () = assert!(
 ///
 /// On ELF (Linux, etc.): `.ver_stub`
 /// On Mach-O (macOS): `__TEXT,__ver_stub`
-#[doc(hidden)]
+///
+/// This is useful for scripts that need to use `cargo objcopy` directly.
 #[cfg(target_os = "macos")]
 pub const SECTION_NAME: &str = "__TEXT,__ver_stub";
 
-#[doc(hidden)]
+/// The section name used for version data (platform-specific).
+///
+/// On ELF (Linux, etc.): `.ver_stub`
+/// On Mach-O (macOS): `__TEXT,__ver_stub`
+///
+/// This is useful for scripts that need to use `cargo objcopy` directly.
 #[cfg(not(target_os = "macos"))]
 pub const SECTION_NAME: &str = ".ver_stub";
 
