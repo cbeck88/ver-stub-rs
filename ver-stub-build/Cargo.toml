@@ -15,3 +15,6 @@ include.workspace = true
 ver-stub = { path = "../ver-stub", version = "0.1.0" }
 heck = "0.5"
 chrono = { version = "0.4", default-features = false, features = ["std", "now"] }
+
+[target.'cfg(windows)'.dependencies]
+tempfile = "3"

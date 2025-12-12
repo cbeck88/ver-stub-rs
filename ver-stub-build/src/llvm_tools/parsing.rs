@@ -132,15 +132,15 @@ pub(super) fn parse_elf_sections(
 /// ```text
 /// Section {
 ///   Index: 0
-///   Name: __ver_stub (5F5F...)
+///   Name: ver_stub (76 65 72...)
 ///   Segment: __TEXT (5F5F...)
 ///   ...
 ///   Size: 0x200
 /// }
 /// ```
 ///
-/// For Mach-O, section_name can be either just the section name (e.g., "__ver_stub")
-/// or "segment,section" format (e.g., "__TEXT,__ver_stub").
+/// For Mach-O, section_name can be either just the section name (e.g., "ver_stub")
+/// or "segment,section" format (e.g., "__TEXT,ver_stub").
 /// Writability is determined by segment: __DATA is writable, __TEXT is not.
 pub(super) fn parse_macho_sections(
     output: &str,

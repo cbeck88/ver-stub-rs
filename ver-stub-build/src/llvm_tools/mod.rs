@@ -139,11 +139,12 @@ impl LlvmTools {
 
     /// Updates a section in a binary using llvm-objcopy, reading section data from bytes.
     ///
-    /// This pipes the bytes directly to objcopy via stdin, avoiding the need for a
-    /// temporary file. Works outside of build.rs context.
+    /// On Unix, this pipes the bytes directly to objcopy via `/dev/stdin`.
+    /// On Windows, this uses a temporary file since `/dev/stdin` doesn't exist.
     ///
     /// Returns `Ok(())` on success, or `Err` if there was an error executing
     /// llvm-objcopy or if it exited with a non-zero status.
+    #[cfg(not(windows))]
     pub fn update_section_with_bytes(
         &self,
         input: impl AsRef<Path>,
@@ -186,6 +187,57 @@ impl LlvmTools {
             return Err(io::Error::other(format!(
                 "llvm-objcopy failed with status {}",
                 output.status
+            )));
+        }
+
+        Ok(())
+    }
+
+    /// Updates a section in a binary using llvm-objcopy, reading section data from bytes.
+    ///
+    /// On Unix, this pipes the bytes directly to objcopy via `/dev/stdin`.
+    /// On Windows, this uses a temporary file since `/dev/stdin` doesn't exist.
+    ///
+    /// Returns `Ok(())` on success, or `Err` if there was an error executing
+    /// llvm-objcopy or if it exited with a non-zero status.
+    #[cfg(windows)]
+    pub fn update_section_with_bytes(
+        &self,
+        input: impl AsRef<Path>,
+        output: impl AsRef<Path>,
+        section_name: &str,
+        bytes: &[u8],
+    ) -> io::Result<()> {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let input = input.as_ref();
+        let output = output.as_ref();
+
+        // Write bytes to a temp file
+        let mut temp_file = NamedTempFile::new()?;
+        temp_file.write_all(bytes)?;
+        temp_file.flush()?;
+
+        let objcopy_path = self.bin_dir.join(format!("llvm-objcopy{}", EXE_SUFFIX));
+        let update_arg = format!("{}={}", section_name, temp_file.path().display());
+
+        let cmd_output = Command::new(&objcopy_path)
+            .arg("--update-section")
+            .arg(&update_arg)
+            .arg(input)
+            .arg(output)
+            .output()?;
+
+        if !cmd_output.status.success() {
+            let stdout = String::from_utf8_lossy(&cmd_output.stdout);
+            let stderr = String::from_utf8_lossy(&cmd_output.stderr);
+            eprintln!("llvm-objcopy failed with status {}", cmd_output.status);
+            eprintln!("stdout:\n{}", stdout);
+            eprintln!("stderr:\n{}", stderr);
+            return Err(io::Error::other(format!(
+                "llvm-objcopy failed with status {}",
+                cmd_output.status
             )));
         }
 
