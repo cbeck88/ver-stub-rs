@@ -93,11 +93,9 @@ pub(super) fn parse_elf_sections(
         }
 
         // Track size
-        if in_target_section {
-            if let Some(size_str) = trimmed.strip_prefix("Size:") {
-                current_size = Some(parse_size(size_str)?);
-                continue;
-            }
+        if in_target_section && let Some(size_str) = trimmed.strip_prefix("Size:") {
+            current_size = Some(parse_size(size_str)?);
+            continue;
         }
 
         // Track flags - check for SHF_WRITE
@@ -107,13 +105,14 @@ pub(super) fn parse_elf_sections(
         }
 
         // End of section - return if we found our target
-        if trimmed == "}" && in_target_section {
-            if let Some(size) = current_size {
-                return Ok(Some(SectionInfo {
-                    size,
-                    is_writable: current_is_writable,
-                }));
-            }
+        if trimmed == "}"
+            && in_target_section
+            && let Some(size) = current_size
+        {
+            return Ok(Some(SectionInfo {
+                size,
+                is_writable: current_is_writable,
+            }));
         }
 
         // Reset on new section
@@ -170,12 +169,8 @@ pub(super) fn parse_macho_sections(
             current_is_writable = seg == "__DATA";
             // Check if we now match the target section
             if let Some(ref name) = current_name {
-                in_target_section = matches_macho_section(
-                    &current_segment,
-                    name,
-                    target_segment,
-                    target_section,
-                );
+                in_target_section =
+                    matches_macho_section(&current_segment, name, target_segment, target_section);
             }
             continue;
         }
@@ -189,21 +184,20 @@ pub(super) fn parse_macho_sections(
         }
 
         // Track size
-        if in_target_section {
-            if let Some(size_str) = trimmed.strip_prefix("Size:") {
-                current_size = Some(parse_size(size_str)?);
-                continue;
-            }
+        if in_target_section && let Some(size_str) = trimmed.strip_prefix("Size:") {
+            current_size = Some(parse_size(size_str)?);
+            continue;
         }
 
         // End of section - return if we found our target
-        if trimmed == "}" && in_target_section {
-            if let Some(size) = current_size {
-                return Ok(Some(SectionInfo {
-                    size,
-                    is_writable: current_is_writable,
-                }));
-            }
+        if trimmed == "}"
+            && in_target_section
+            && let Some(size) = current_size
+        {
+            return Ok(Some(SectionInfo {
+                size,
+                is_writable: current_is_writable,
+            }));
         }
 
         // Reset on new section
