@@ -153,13 +153,14 @@ impl LlvmTools {
             }
 
             // End of section - return if we found our target
-            if trimmed == "}" && in_target_section {
-                if let Some(size) = current_size {
-                    return Ok(Some(SectionInfo {
-                        size,
-                        is_writable: current_is_writable,
-                    }));
-                }
+            if trimmed == "}"
+                && in_target_section
+                && let Some(size) = current_size
+            {
+                return Ok(Some(SectionInfo {
+                    size,
+                    is_writable: current_is_writable,
+                }));
             }
 
             // Reset on new section

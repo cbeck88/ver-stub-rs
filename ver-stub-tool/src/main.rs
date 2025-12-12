@@ -202,10 +202,16 @@ fn main() {
                 std::process::exit(1);
             });
             let section_name = ver_stub_build::SECTION_NAME;
-            let info = llvm.get_section_info(input, section_name).unwrap_or_else(|e| {
-                eprintln!("error: failed to read section info from {}: {}", input.display(), e);
-                std::process::exit(1);
-            });
+            let info = llvm
+                .get_section_info(input, section_name)
+                .unwrap_or_else(|e| {
+                    eprintln!(
+                        "error: failed to read section info from {}: {}",
+                        input.display(),
+                        e
+                    );
+                    std::process::exit(1);
+                });
             println!("section: {}", section_name);
             match info {
                 Some(info) => println!("{:#?}", info),
