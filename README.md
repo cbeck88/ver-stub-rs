@@ -34,6 +34,10 @@ have to be recompiled -- this section just needs to be overwritten again.
 If it is never filled in, then the section is all 0s, and at
 runtime your program safely reports that it doesn't have build information available and otherwise works correctly.
 
+There are several possible workflows to perform the patching, but the main ones use `llvm-tools` installed by `rustup`
+which match the version of llvm used by your version of `rustc`, on whatever platform you are working on. CI covers
+linux, mac, and windows at time of writing.
+
 ## Quickstart
 
 Use `ver_stub` anywhere in your project, and call its functions
