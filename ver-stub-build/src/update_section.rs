@@ -30,8 +30,8 @@ impl UpdateSectionCommand {
     /// If `write_to()` is called with a file path (not a directory), this will panic.
     ///
     /// If not called, the default name is `{original_name}.bin`.
-    pub fn with_filename(mut self, name: &str) -> Self {
-        self.new_name = Some(name.to_string());
+    pub fn with_filename(mut self, name: impl Into<String>) -> Self {
+        self.new_name = Some(name.into());
         self
     }
 
