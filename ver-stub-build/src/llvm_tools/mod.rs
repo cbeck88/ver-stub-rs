@@ -3,9 +3,9 @@
 mod parsing;
 
 use std::env::consts::EXE_SUFFIX;
-use std::io::{self, Write};
+use std::io;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 use crate::rustc;
 use parsing::{BinaryFormat, parse_coff_sections, parse_elf_sections, parse_macho_sections};
@@ -152,6 +152,9 @@ impl LlvmTools {
         section_name: &str,
         bytes: &[u8],
     ) -> io::Result<()> {
+        use std::io::Write;
+        use std::process::Stdio;
+
         let input = input.as_ref();
         let output = output.as_ref();
 
