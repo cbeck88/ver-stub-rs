@@ -1,6 +1,6 @@
 [package]
 name = "ver-stub-build"
-version = "0.1.0"
+version = "0.2.0"
 description = "Build script helper for injecting version data into binaries"
 readme = "README.md"
 authors.workspace = true
@@ -12,7 +12,7 @@ categories.workspace = true
 include.workspace = true
 
 [dependencies]
-ver-stub = { path = "../ver-stub", version = "0.1.0" }
+ver-stub = { path = "../ver-stub", version = "0.2.0" }
 heck = "0.5"
 chrono = { version = "0.4", default-features = false, features = ["std", "now"] }
 
