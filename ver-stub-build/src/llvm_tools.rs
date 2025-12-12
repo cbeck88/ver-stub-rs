@@ -75,9 +75,7 @@ impl LlvmTools {
             }
 
             // If we're in the target section, look for the Size line
-            if in_target_section
-                && let Some(size_str) = trimmed.strip_prefix("Size:")
-            {
+            if in_target_section && let Some(size_str) = trimmed.strip_prefix("Size:") {
                 let size = size_str.trim().parse::<usize>().map_err(|e| {
                     io::Error::new(
                         io::ErrorKind::InvalidData,

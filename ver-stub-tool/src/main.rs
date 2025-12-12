@@ -161,7 +161,10 @@ fn main() {
     let section = build_section(&args);
 
     match args.command {
-        Some(Command::Patch { ref input, ref output }) => {
+        Some(Command::Patch {
+            ref input,
+            ref output,
+        }) => {
             let output_path = output
                 .clone()
                 .unwrap_or_else(|| input.parent().unwrap().to_path_buf());

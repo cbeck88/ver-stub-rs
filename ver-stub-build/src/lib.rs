@@ -284,7 +284,9 @@ impl LinkSection {
 
             // VER_STUB_IDEMPOTENT takes precedence: if set, never include build time
             if std::env::var("VER_STUB_IDEMPOTENT").is_ok() {
-                eprintln!("ver-stub-build: VER_STUB_IDEMPOTENT is set, skipping build timestamp/date");
+                eprintln!(
+                    "ver-stub-build: VER_STUB_IDEMPOTENT is set, skipping build timestamp/date"
+                );
             } else {
                 let build_time = get_build_time();
                 if self.include_build_timestamp {
@@ -437,7 +439,10 @@ impl LinkSection {
 ///
 /// Using relative offsets means a zero-initialized buffer reads as "all members absent".
 /// The num_members byte enables forward compatibility: old sections can be read by new code.
-fn build_section_buffer(member_data: &[Option<String>; Member::COUNT], buffer_size: usize) -> Vec<u8> {
+fn build_section_buffer(
+    member_data: &[Option<String>; Member::COUNT],
+    buffer_size: usize,
+) -> Vec<u8> {
     let mut buffer = vec![0u8; buffer_size];
     let header_sz = header_size(Member::COUNT);
 
