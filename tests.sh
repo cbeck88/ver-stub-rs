@@ -27,7 +27,7 @@ fail() {
 # Clean up before tests (examples are excluded from workspace, have their own targets)
 echo "Cleaning up..."
 cargo clean 2>/dev/null || true
-rm -rf ver-stub-example-objcopy/target ver-stub-example-build/target 2>/dev/null || true
+rm -rf ver-stub-example/target ver-stub-example-build/target 2>/dev/null || true
 echo
 
 # Build the ver-stub CLI tool first
@@ -38,13 +38,13 @@ echo
 
 # Test 1: Build objcopy example (debug)
 echo "--- Test: Build objcopy example (debug) ---"
-(cd ver-stub-example-objcopy && cargo build 2>&1)
+(cd ver-stub-example && cargo build 2>&1)
 pass "objcopy example builds in debug mode"
 echo
 
 # Test 2: Unpatched binary should show "(not set)" and not panic
 echo "--- Test: Unpatched binary shows '(not set)' ---"
-OUTPUT=$(./ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy 2>&1)
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example 2>&1)
 if echo "$OUTPUT" | grep -q "(not set)"; then
     pass "unpatched binary shows '(not set)'"
 else
@@ -55,13 +55,13 @@ echo
 # Test 3: Patch binary with ver-stub patch (debug)
 echo "--- Test: Patch binary with ver-stub patch (debug) ---"
 $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy 2>&1
+    ver-stub-example/target/debug/ver-stub-example 2>&1
 pass "ver-stub patch works in debug mode"
 echo
 
 # Test 4: Patched binary should show git info
 echo "--- Test: Patched binary shows git info ---"
-OUTPUT=$(./ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy.bin 2>&1)
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
 if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
     pass "patched binary shows git sha"
 else
@@ -76,10 +76,10 @@ echo
 
 # Test 5: Build and patch objcopy example (release)
 echo "--- Test: Build and patch objcopy example (release) ---"
-(cd ver-stub-example-objcopy && cargo build --release 2>&1)
+(cd ver-stub-example && cargo build --release 2>&1)
 $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example-objcopy/target/release/ver-stub-example-objcopy 2>&1
-OUTPUT=$(./ver-stub-example-objcopy/target/release/ver-stub-example-objcopy.bin 2>&1)
+    ver-stub-example/target/release/ver-stub-example 2>&1
+OUTPUT=$(./ver-stub-example/target/release/ver-stub-example.bin 2>&1)
 if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
     pass "objcopy example works in release mode"
 else
@@ -90,13 +90,13 @@ echo
 # Test 6: Alternative approach - ver-stub -o + cargo objcopy
 echo "--- Test: Alternative approach (ver-stub -o + cargo objcopy) ---"
 # Generate section data file
-$VER_STUB --all-git --all-build-time -o ver-stub-example-objcopy/target/ver_stub_data 2>&1
+$VER_STUB --all-git --all-build-time -o ver-stub-example/target/ver_stub_data 2>&1
 # Use cargo objcopy to patch
-cargo objcopy --manifest-path ver-stub-example-objcopy/Cargo.toml \
-    --bin ver-stub-example-objcopy -- \
-    --update-section .ver_stub=ver-stub-example-objcopy/target/ver_stub_data \
-    ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy-alt.bin 2>&1
-OUTPUT=$(./ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy-alt.bin 2>&1)
+cargo objcopy --manifest-path ver-stub-example/Cargo.toml \
+    --bin ver-stub-example -- \
+    --update-section .ver_stub=ver-stub-example/target/ver_stub_data \
+    ver-stub-example/target/debug/ver-stub-example-alt.bin 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example-alt.bin 2>&1)
 if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
     pass "alternative approach (ver-stub -o + cargo objcopy) works"
 else
@@ -117,7 +117,7 @@ echo
 
 # Test 8: VER_STUB_BUFFER_SIZE=1024 should work
 echo "--- Test: VER_STUB_BUFFER_SIZE=1024 works ---"
-if (cd ver-stub-example-objcopy && VER_STUB_BUFFER_SIZE=1024 cargo build 2>&1); then
+if (cd ver-stub-example && VER_STUB_BUFFER_SIZE=1024 cargo build 2>&1); then
     pass "VER_STUB_BUFFER_SIZE=1024 works"
 else
     fail "VER_STUB_BUFFER_SIZE=1024 should work"
@@ -126,7 +126,7 @@ echo
 
 # Test 8: VER_STUB_BUFFER_SIZE=65535 should work
 echo "--- Test: VER_STUB_BUFFER_SIZE=65535 (max u16) works ---"
-if (cd ver-stub-example-objcopy && VER_STUB_BUFFER_SIZE=65535 cargo build 2>&1); then
+if (cd ver-stub-example && VER_STUB_BUFFER_SIZE=65535 cargo build 2>&1); then
     pass "VER_STUB_BUFFER_SIZE=65535 works"
 else
     fail "VER_STUB_BUFFER_SIZE=65535 should work"
@@ -135,7 +135,7 @@ echo
 
 # Test 9: VER_STUB_BUFFER_SIZE=65536 should fail
 echo "--- Test: VER_STUB_BUFFER_SIZE=65536 (overflow) fails ---"
-if (cd ver-stub-example-objcopy && VER_STUB_BUFFER_SIZE=65536 cargo build 2>&1); then
+if (cd ver-stub-example && VER_STUB_BUFFER_SIZE=65536 cargo build 2>&1); then
     fail "VER_STUB_BUFFER_SIZE=65536 should fail"
 else
     pass "VER_STUB_BUFFER_SIZE=65536 correctly fails"
@@ -144,7 +144,7 @@ echo
 
 # Test 10: VER_STUB_BUFFER_SIZE=32 (too small) should fail
 echo "--- Test: VER_STUB_BUFFER_SIZE=32 (too small) fails ---"
-if (cd ver-stub-example-objcopy && VER_STUB_BUFFER_SIZE=32 cargo build 2>&1); then
+if (cd ver-stub-example && VER_STUB_BUFFER_SIZE=32 cargo build 2>&1); then
     fail "VER_STUB_BUFFER_SIZE=32 should fail (must be > 32)"
 else
     pass "VER_STUB_BUFFER_SIZE=32 correctly fails"
@@ -153,14 +153,14 @@ echo
 
 # Build a baseline before VER_STUB_BUILD_TIME tests (test 10 left things in a failed state)
 echo "--- Building baseline for VER_STUB_BUILD_TIME tests ---"
-(cd ver-stub-example-objcopy && cargo build 2>&1)
+(cd ver-stub-example && cargo build 2>&1)
 echo
 
 # Test 11: VER_STUB_BUILD_TIME with unix timestamp
 echo "--- Test: VER_STUB_BUILD_TIME with unix timestamp ---"
 VER_STUB_BUILD_TIME=1700000000 $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy 2>&1
-OUTPUT=$(./ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy.bin 2>&1)
+    ver-stub-example/target/debug/ver-stub-example 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
 if echo "$OUTPUT" | grep -q "build timestamp: 2023-11-14"; then
     pass "VER_STUB_BUILD_TIME unix timestamp works (2023-11-14)"
 else
@@ -171,8 +171,8 @@ echo
 # Test 12: VER_STUB_BUILD_TIME with RFC 3339
 echo "--- Test: VER_STUB_BUILD_TIME with RFC 3339 ---"
 VER_STUB_BUILD_TIME="2024-06-15T12:30:00Z" $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy 2>&1
-OUTPUT=$(./ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy.bin 2>&1)
+    ver-stub-example/target/debug/ver-stub-example 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
 if echo "$OUTPUT" | grep -q "build timestamp: 2024-06-15"; then
     pass "VER_STUB_BUILD_TIME RFC 3339 works (2024-06-15)"
 else
@@ -183,7 +183,7 @@ echo
 # Test 13: VER_STUB_BUILD_TIME with invalid value should fail
 echo "--- Test: VER_STUB_BUILD_TIME with invalid value fails ---"
 if VER_STUB_BUILD_TIME="not-a-timestamp" $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy 2>&1; then
+    ver-stub-example/target/debug/ver-stub-example 2>&1; then
     fail "VER_STUB_BUILD_TIME with invalid value should fail"
 else
     pass "VER_STUB_BUILD_TIME with invalid value correctly fails"
@@ -193,8 +193,8 @@ echo
 # Test 14: VER_STUB_IDEMPOTENT skips build time
 echo "--- Test: VER_STUB_IDEMPOTENT skips build time ---"
 VER_STUB_IDEMPOTENT=1 $VER_STUB --all-git --all-build-time patch \
-    ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy 2>&1
-OUTPUT=$(./ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy.bin 2>&1)
+    ver-stub-example/target/debug/ver-stub-example 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
 if echo "$OUTPUT" | grep -qE "build timestamp:\s+\(not set\)" && echo "$OUTPUT" | grep -qE "build date:\s+\(not set\)"; then
     pass "VER_STUB_IDEMPOTENT skips build timestamp and date"
 else
@@ -216,10 +216,10 @@ ORIGINAL_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 # Clean build first, and preemptively delete test branch in case previous run failed
 git branch -D testtesttesttest 2>/dev/null || true
-(cd ver-stub-example-objcopy && cargo clean 2>/dev/null || true)
-(cd ver-stub-example-objcopy && cargo build 2>&1)
-$VER_STUB --all-git patch ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy 2>&1
-OUTPUT=$(./ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy.bin 2>&1)
+(cd ver-stub-example && cargo clean 2>/dev/null || true)
+(cd ver-stub-example && cargo build 2>&1)
+$VER_STUB --all-git patch ver-stub-example/target/debug/ver-stub-example 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
 # Use regex to match "git branch:" followed by whitespace and branch name
 if echo "$OUTPUT" | grep -qE "git branch:\s+$ORIGINAL_BRANCH"; then
     pass "initial build shows branch '$ORIGINAL_BRANCH'"
@@ -231,7 +231,7 @@ fi
 git checkout -b testtesttesttest 2>&1
 
 # Build and patch again - should not recompile
-BUILD_OUTPUT=$(cd ver-stub-example-objcopy && cargo build 2>&1)
+BUILD_OUTPUT=$(cd ver-stub-example && cargo build 2>&1)
 echo "$BUILD_OUTPUT"
 if echo "$BUILD_OUTPUT" | grep -q "Compiling"; then
     fail "switching branches should not trigger recompilation"
@@ -239,8 +239,8 @@ else
     pass "no recompilation after branch switch"
 fi
 
-$VER_STUB --all-git patch ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy 2>&1
-OUTPUT=$(./ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy.bin 2>&1)
+$VER_STUB --all-git patch ver-stub-example/target/debug/ver-stub-example 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
 if echo "$OUTPUT" | grep -qE "git branch:\s+testtesttesttest"; then
     pass "patched binary shows new branch 'testtesttesttest'"
 else
@@ -251,7 +251,7 @@ fi
 git checkout HEAD@{1} 2>&1
 
 # Build and patch again - should not recompile
-BUILD_OUTPUT=$(cd ver-stub-example-objcopy && cargo build 2>&1)
+BUILD_OUTPUT=$(cd ver-stub-example && cargo build 2>&1)
 echo "$BUILD_OUTPUT"
 if echo "$BUILD_OUTPUT" | grep -q "Compiling"; then
     fail "checkout via reflog should not trigger recompilation"
@@ -259,8 +259,8 @@ else
     pass "no recompilation after reflog checkout"
 fi
 
-$VER_STUB --all-git patch ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy 2>&1
-OUTPUT=$(./ver-stub-example-objcopy/target/debug/ver-stub-example-objcopy.bin 2>&1)
+$VER_STUB --all-git patch ver-stub-example/target/debug/ver-stub-example 2>&1
+OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example.bin 2>&1)
 # In detached HEAD state, git rev-parse --abbrev-ref HEAD returns "HEAD"
 if echo "$OUTPUT" | grep -qE "git branch:\s+HEAD"; then
     pass "patched binary shows detached HEAD after reflog checkout"

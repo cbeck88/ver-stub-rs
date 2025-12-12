@@ -8,7 +8,6 @@ members = [
 exclude = [
     "ver-stub-example",
     "ver-stub-example-build",
-    "ver-stub-example-objcopy",
 ]
 
 [workspace.package]

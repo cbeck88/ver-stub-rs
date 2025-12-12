@@ -123,12 +123,12 @@ For ergonomics, put this in:
 * A justfile
 * A pre-existing release script.
 
-**Example:** [`ver-stub-example-objcopy`](./ver-stub-example-objcopy)
+**Example:** [`ver-stub-example`](./ver-stub-example)
 
 ```sh
-cargo build
-ver-stub --all-git --all-build-time patch target/debug/ver-stub-example-objcopy
-./target/debug/ver-stub-example-objcopy.bin
+cargo build -p ver-stub-example
+ver-stub --all-git --all-build-time patch ver-stub-example/target/debug/ver-stub-example
+./ver-stub-example/target/debug/ver-stub-example.bin
 ```
 
 ### Approach #3: Using `cargo objcopy`
