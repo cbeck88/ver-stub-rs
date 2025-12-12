@@ -26,7 +26,7 @@ project goal.
 
 ## How does it work?
 
-The `ver-stub` crate declares a linker section called `.ver_stub` with a specific size in bytes.
+The `ver-stub` crate declares a custom linker section with a specific size in bytes.
 This is filled in with requested version data only at the end of the build process, after all the
 time consuming steps are done. If the version data (git, timestamps) changes, the binary doesn't
 have to be recompiled -- this section just needs to be overwritten again.

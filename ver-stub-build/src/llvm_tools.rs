@@ -40,9 +40,10 @@ impl LlvmTools {
             .output()?;
 
         if !output.status.success() {
-            return Err(io::Error::other(
-                format!("llvm-readobj failed with status {}", output.status),
-            ));
+            return Err(io::Error::other(format!(
+                "llvm-readobj failed with status {}",
+                output.status
+            )));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -92,7 +93,8 @@ impl LlvmTools {
                 current_segment = Some(seg);
                 // Check if we now match the target section
                 if let Some(ref name) = current_name {
-                    let full_name = format!("{},{}", current_segment.as_deref().unwrap_or(""), name);
+                    let full_name =
+                        format!("{},{}", current_segment.as_deref().unwrap_or(""), name);
                     in_target_section = name == section_name || full_name == section_name;
                 }
                 continue;
@@ -113,10 +115,17 @@ impl LlvmTools {
 
             // If we're in the target section, look for the Size line
             if in_target_section && let Some(size_str) = trimmed.strip_prefix("Size:") {
-                let size = size_str.trim().parse::<usize>().map_err(|e| {
+                let size_str = size_str.trim();
+                // Parse size - may be decimal (ELF) or hex with 0x prefix (Mach-O)
+                let size = if let Some(hex) = size_str.strip_prefix("0x") {
+                    usize::from_str_radix(hex, 16)
+                } else {
+                    size_str.parse::<usize>()
+                }
+                .map_err(|e| {
                     io::Error::new(
                         io::ErrorKind::InvalidData,
-                        format!("failed to parse section size '{}': {}", size_str.trim(), e),
+                        format!("failed to parse section size '{}': {}", size_str, e),
                     )
                 })?;
                 return Ok(Some(size));
@@ -159,9 +168,10 @@ impl LlvmTools {
             .status()?;
 
         if !status.success() {
-            return Err(io::Error::other(
-                format!("llvm-objcopy failed with status {}", status),
-            ));
+            return Err(io::Error::other(format!(
+                "llvm-objcopy failed with status {}",
+                status
+            )));
         }
 
         Ok(())
@@ -206,9 +216,10 @@ impl LlvmTools {
         let status = child.wait()?;
 
         if !status.success() {
-            return Err(io::Error::other(
-                format!("llvm-objcopy failed with status {}", status),
-            ));
+            return Err(io::Error::other(format!(
+                "llvm-objcopy failed with status {}",
+                status
+            )));
         }
 
         Ok(())
