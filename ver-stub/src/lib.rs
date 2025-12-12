@@ -1,7 +1,8 @@
 //! Runtime access to version data injected via a link section.
 //!
 //! This crate provides a way to access git version information that has been
-//! injected into the binary via the `.ver_stub` link section.
+//! injected into the binary via a platform-specific link section
+//! (`.ver_stub` on ELF, `__TEXT,__ver_stub` on Mach-O).
 //!
 //! The section format is:
 //! - First byte: number of members in the section (for forward compatibility)
@@ -57,8 +58,16 @@ const _: () = assert!(
     "VER_STUB_BUFFER_SIZE must be greater than 32"
 );
 
-/// The section name used for version data.
+/// The section name used for version data (platform-specific).
+///
+/// On ELF (Linux, etc.): `.ver_stub`
+/// On Mach-O (macOS): `__TEXT,__ver_stub`
 #[doc(hidden)]
+#[cfg(target_os = "macos")]
+pub const SECTION_NAME: &str = "__TEXT,__ver_stub";
+
+#[doc(hidden)]
+#[cfg(not(target_os = "macos"))]
 pub const SECTION_NAME: &str = ".ver_stub";
 
 // Members that can be stored in the version data.
@@ -88,7 +97,8 @@ impl Member {
 // Note: We use "links" in the cargo toml for this crate to try to ensure that
 // only one version of this crate appears in the build graph, and so only one
 // version of the BUFFER exists, and BUFFER_SIZE = section size.
-#[unsafe(link_section = ".ver_stub")]
+#[cfg_attr(target_os = "macos", unsafe(link_section = "__TEXT,__ver_stub"))]
+#[cfg_attr(not(target_os = "macos"), unsafe(link_section = ".ver_stub"))]
 #[used]
 static BUFFER: [u8; BUFFER_SIZE] = [0u8; BUFFER_SIZE];
 

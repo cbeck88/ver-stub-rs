@@ -47,29 +47,67 @@ impl LlvmTools {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
 
-        // Parse llvm-readobj --sections output to find our section
-        // Format is like:
+        // Parse llvm-readobj --sections output to find our section.
+        //
+        // ELF format:
         //   Section {
         //     Index: 16
         //     Name: .ver_stub (472)
         //     Type: SHT_PROGBITS (0x1)
         //     ...
         //     Size: 512
-        //     ...
         //   }
+        //
+        // Mach-O format:
+        //   Section {
+        //     Index: 0
+        //     Name: __ver_stub (hex...)
+        //     Segment: __TEXT (hex...)
+        //     ...
+        //     Size: 512
+        //   }
+        //
+        // For Mach-O, section_name is "segment,section" (e.g., "__TEXT,__ver_stub"),
+        // so we need to track both segment and name to match.
+
+        // Helper to extract name from "Name: foo (hex...)" or "Segment: bar (hex...)"
+        fn extract_name(line: &str, prefix: &str) -> Option<String> {
+            let part = line.strip_prefix(prefix)?;
+            let name = match part.find('(') {
+                Some(idx) => part[..idx].trim(),
+                None => part.trim(),
+            };
+            Some(name.to_string())
+        }
+
+        let mut current_segment: Option<String> = None;
+        let mut current_name: Option<String> = None;
         let mut in_target_section = false;
+
         for line in stdout.lines() {
             let trimmed = line.trim();
 
-            // Check if we're entering our target section
-            // Format: "Name: .ver_stub (472)"
-            if let Some(name_part) = trimmed.strip_prefix("Name:") {
-                // Remove parenthesized suffix and trim: ".ver_stub (472)" -> ".ver_stub"
-                let name = match name_part.find('(') {
-                    Some(idx) => name_part[..idx].trim(),
-                    None => name_part.trim(),
+            // Track segment (Mach-O only)
+            if let Some(seg) = extract_name(trimmed, "Segment:") {
+                current_segment = Some(seg);
+                // Check if we now match the target section
+                if let Some(ref name) = current_name {
+                    let full_name = format!("{},{}", current_segment.as_deref().unwrap_or(""), name);
+                    in_target_section = name == section_name || full_name == section_name;
+                }
+                continue;
+            }
+
+            // Track section name
+            if let Some(name) = extract_name(trimmed, "Name:") {
+                current_name = Some(name.clone());
+                // For ELF, segment is None, so we just match the name directly.
+                // For Mach-O, we might not have seen Segment yet, so check both possibilities.
+                let full_name = match &current_segment {
+                    Some(seg) => format!("{},{}", seg, name),
+                    None => name.clone(),
                 };
-                in_target_section = name == section_name;
+                in_target_section = name == section_name || full_name == section_name;
                 continue;
             }
 
@@ -82,6 +120,13 @@ impl LlvmTools {
                     )
                 })?;
                 return Ok(Some(size));
+            }
+
+            // Reset on new section
+            if trimmed == "Section {" {
+                current_segment = None;
+                current_name = None;
+                in_target_section = false;
             }
         }
 
