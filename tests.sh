@@ -24,6 +24,13 @@ fail() {
     exit 1
 }
 
+# Platform-specific section name
+if [[ "$(uname)" == "Darwin" ]]; then
+    SECTION_NAME="__TEXT,__ver_stub"
+else
+    SECTION_NAME=".ver_stub"
+fi
+
 # Clean up before tests (examples are excluded from workspace, have their own targets)
 echo "Cleaning up..."
 cargo clean 2>/dev/null || true
@@ -94,7 +101,7 @@ $VER_STUB --all-git --all-build-time -o ver-stub-example/target/ver_stub_data 2>
 # Use cargo objcopy to patch
 cargo objcopy --manifest-path ver-stub-example/Cargo.toml \
     --bin ver-stub-example -- \
-    --update-section .ver_stub=ver-stub-example/target/ver_stub_data \
+    --update-section "$SECTION_NAME"=ver-stub-example/target/ver_stub_data \
     ver-stub-example/target/debug/ver-stub-example-alt.bin 2>&1
 OUTPUT=$(./ver-stub-example/target/debug/ver-stub-example-alt.bin 2>&1)
 if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
