@@ -552,3 +552,50 @@ fn get_build_time() -> DateTime<Utc> {
 
     Utc::now()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_build_section_buffer() {
+        let mut args = [const { None }; Member::COUNT];
+
+        args[0] = Some("asdf".into());
+
+        let buf_vec = build_section_buffer(&args, BUFFER_SIZE);
+        let buffer: &[u8; BUFFER_SIZE] = (&buf_vec[..]).try_into().unwrap();
+
+        assert_eq!(Member::get_idx_from_buffer(0, &buffer).unwrap(), "asdf");
+        for idx in 1..Member::COUNT {
+            assert!(Member::get_idx_from_buffer(idx, &buffer).is_none());
+        }
+
+        args[2] = Some("jkl;".into());
+
+        let buf_vec = build_section_buffer(&args, BUFFER_SIZE);
+        let buffer: &[u8; BUFFER_SIZE] = (&buf_vec[..]).try_into().unwrap();
+
+        assert_eq!(Member::get_idx_from_buffer(0, &buffer).unwrap(), "asdf");
+        assert!(Member::get_idx_from_buffer(1, &buffer).is_none());
+        assert_eq!(Member::get_idx_from_buffer(2, &buffer).unwrap(), "jkl;");
+        for idx in 3..Member::COUNT {
+            assert!(Member::get_idx_from_buffer(idx, &buffer).is_none());
+        }
+
+        args[5] = Some("nana".into());
+
+        let buf_vec = build_section_buffer(&args, BUFFER_SIZE);
+        let buffer: &[u8; BUFFER_SIZE] = (&buf_vec[..]).try_into().unwrap();
+
+        assert_eq!(Member::get_idx_from_buffer(0, &buffer).unwrap(), "asdf");
+        assert!(Member::get_idx_from_buffer(1, &buffer).is_none());
+        assert_eq!(Member::get_idx_from_buffer(2, &buffer).unwrap(), "jkl;");
+        assert!(Member::get_idx_from_buffer(3, &buffer).is_none());
+        assert!(Member::get_idx_from_buffer(4, &buffer).is_none());
+        assert_eq!(Member::get_idx_from_buffer(5, &buffer).unwrap(), "nana");
+        for idx in 6..Member::COUNT {
+            assert!(Member::get_idx_from_buffer(idx, &buffer).is_none());
+        }
+    }
+}

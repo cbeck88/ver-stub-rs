@@ -132,13 +132,16 @@ impl Member {
     // Panics:
     // - If the data is not valid UTF-8
     // - If the section is malformed: end < start (invalid range), end > BUFFER_SIZE (out of bounds)
-    fn get_from_buffer<'a>(&self, buffer: &'a [u8; BUFFER_SIZE]) -> Option<&'a str> {
+    #[doc(hidden)]
+    pub fn get_from_buffer<'a>(&self, buffer: &'a [u8; BUFFER_SIZE]) -> Option<&'a str> {
         let idx = *self as usize;
 
         Self::get_idx_from_buffer(idx, buffer)
     }
 
-    fn get_idx_from_buffer(idx: usize, buffer: &[u8; BUFFER_SIZE]) -> Option<&str> {
+    // Takes usize instead of Member, to allow easy iteration in tests
+    #[doc(hidden)]
+    pub fn get_idx_from_buffer(idx: usize, buffer: &[u8; BUFFER_SIZE]) -> Option<&str> {
         // Read the actual number of members from the first byte
         let actual_num_members = Self::read_buffer_byte(buffer, 0) as usize;
 
