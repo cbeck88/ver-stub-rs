@@ -289,6 +289,7 @@ Most likely not.
   If your compiler changes, or your opt level changes, or your cargo features change, cargo already has to rebuild, whether or
   not you additionally inject this stuff as text strings into the source. So there's no advantage to the link-section approach
   over what `vergen` is doing with `env!` for such data. You might as well use `vergen` for these types of data.
+  (See also [`built`](https://docs.rs/built/latest/built/) which collects a different set of info for a `build.rs` file.)
 
 * You can inject whatever you want in the custom string, and that could also be structured data with ASCII separators if you want.
   (Remember to emit appropriate `cargo::rerun-if-changed-` directives!)
