@@ -556,7 +556,7 @@ fn get_build_time() -> DateTime<Utc> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_build_section_buffer() {
         let mut args = [const { None }; Member::COUNT];
