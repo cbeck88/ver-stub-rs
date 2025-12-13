@@ -1,38 +1,53 @@
-//! Build script helper for injecting version data into binaries.
+//! Write the section format used by `ver-stub`, and inject it into binaries.
 //!
-//! This crate provides utilities for use in `build.rs` scripts to inject
-//! git version information into artifact dependency binaries:
+//! This crate can be used from
+//! - `build.rs` scripts
+//! - Standalone binary tools, such as `ver-stub-tool`.
 //!
-//! - Git SHA (`git rev-parse HEAD`)
-//! - Git describe (`git describe --always --dirty`)
-//! - Git branch (`git rev-parse --abbrev-ref HEAD`)
+//! # Quickstart
 //!
-//! # Requirements
+//! Create a LinkSection, tell it what contents you want it to have, and then
+//! do something with it -- either write the bytes out to a file, or patch it
+//! into a binary that is using `ver-stub`.
 //!
-//! This crate requires Cargo's unstable [artifact dependencies] feature (bindeps).
-//! You must use nightly Cargo and enable it in `.cargo/config.toml`:
-//!
-//! ```toml
-//! [unstable]
-//! bindeps = true
-//! ```
-//!
-//! [artifact dependencies]: https://doc.rust-lang.org/cargo/reference/unstable.html#artifact-dependencies
-//!
-//! # Example
-//!
-//! In your `build.rs`:
+//! In your build.rs:
 //! ```ignore
 //! use ver_stub_build::LinkSection;
 //!
 //! fn main() {
-//!     // Patch an artifact dependency binary (uses CARGO_BIN_FILE_* env vars)
+//!     // Patch the `my-bin` executable, producing `my-bin.bin` in the target profile dir.
 //!     LinkSection::new()
 //!         .with_all_git()
 //!         .patch_into_bin_dep("my-dep", "my-bin")
 //!         .write_to_target_profile_dir();
 //!
-//!     // Or patch a binary at a specific path
+//!     // Or with a custom output name
+//!     LinkSection::new()
+//!         .with_all_git()
+//!         .patch_into_bin_dep("my-dep", "my-bin")
+//!         .with_filename("my-custom-name")
+//!         .write_to_target_profile_dir();
+//!
+//!     // Or at a custom destination
+//!     LinkSection::new()
+//!         .with_all_git()
+//!         .patch_into_bin_dep("my-dep", "my-bin")
+//!         .write_to("dist/my-bin");
+//! }
+//! ```
+//!
+//! NOTE: `patch_into_bin_dep` requires cargo's unstable artifact dependencies feature.
+//! You must use nightly cargo, and enable "bindeps" in `.cargo/config.toml`.
+//! Then it finds file to be patched using `CARGO_BIN_FILE_*` env vars.
+//!
+//! More generally, you can use it without artifact dependencies, to do things
+//! similar to what ver-stub-tool does.
+//!
+//! ```ignore
+//! use ver_stub_build::LinkSection;
+//!
+//! fn main() {
+//!     // Patch a binary at a specific path
 //!     LinkSection::new()
 //!         .with_all_git()
 //!         .patch_into("/path/to/binary")
@@ -41,7 +56,7 @@
 //!     // Or with a custom output name
 //!     LinkSection::new()
 //!         .with_all_git()
-//!         .patch_into_bin_dep("my-dep", "my-bin")
+//!         .patch_into("/path/to/binary")
 //!         .with_filename("my-custom-name")
 //!         .write_to_target_profile_dir();
 //!

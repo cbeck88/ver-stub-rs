@@ -50,6 +50,8 @@ jobs:
         save-if: ${{ github.ref == 'refs/heads/master' }}
     - name: Build
       run: cargo build --verbose
+    - name: Test
+      run: cargo test --verbose
     - name: Run tests.sh
       run: ./tests.sh
     - name: Check dirty git

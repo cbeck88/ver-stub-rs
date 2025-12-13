@@ -22,7 +22,7 @@ to rebuild many things, but that would cause momentary confusion and make
 me think that I'd accidentally changed code and committed or tagged the wrong thing.
 
 See also the ["relink don't rebuild"](https://rust-lang.github.io/rust-project-goals/2025h2/relink-dont-rebuild.html)
-project goal.
+rust project goal.
 
 ## How does it work?
 
@@ -56,7 +56,8 @@ fn custom() -> Option<&'static str>;
 
 This crate doesn't change when the git data changes, so depending on it doesn't trigger any rebuilds.
 
-Then, use the `ver-stub-build` crate to fill in the linker section.
+Then, use the [`ver-stub-build`](https://docs.rs/ver-stub-build/latest/ver_stub_build/)
+ crate to fill in the linker section.
 
 There are three recommended approaches.
 
