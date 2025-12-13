@@ -138,7 +138,7 @@ ver-stub --all-git --all-build-time patch ver-stub-example/target/debug/ver-stub
 
 ### Approach #3: Using `cargo objcopy`
 
-An alternative that gives you more control is to use `cargo objcopy` from `cargo-binutils`:
+An alternative that gives you more control is to use `cargo objcopy` from [`cargo-binutils`](https://crates.io/crates/cargo-binutils):
 
 ```sh
 cargo install cargo-binutils
@@ -235,9 +235,9 @@ It must be larger than 32 bytes and no more than 64KB.
 
 ### multiple copies
 
-It is important for the correctness of the crate that only one version of `ver-stub` is used at a time. Otherwise the custom section will have two copies
-of the buffer, and only one of them actually gets written by objcopy. To force this to be the case, the `links` attribute is used with `ver-stub`, with the
-name of the custom linker section.
+It is important for the correctness of the crate that only one version of `ver-stub` is used at a time in your binary. Otherwise the custom section will have two copies
+of the buffer, and only one of them actually gets written by objcopy. To force this to be the case, the [`links` attribute](https://doc.rust-lang.org/cargo/reference/build-scripts.html#the-links-manifest-key)
+is used in the `Cargo.toml` for `ver-stub`, with the name of the custom linker section.
 
 (Note that `llvm-objcopy` also has some protections, and [won't allow a section to be enlarged via `--update-section`](https://reviews.llvm.org/D112116).)
 
@@ -248,8 +248,8 @@ If nothing in the program, after optimizations, references the linker section, i
 even if you put `#[used]` on a section, because linker optimizations tend to be very aggressive.) This would be fine except
 that the `objcopy --update-section` command will fail if the section doesn't exist when `objcopy` runs.
 
-The `ver-stub-build` crate uses `readobj` to get the section and it's size, and does the right thing if it doesn't exist, so you won't notice this with the first two methods.
-If you are using `cargo objcopy`, however, `objcopy` will fail with an error if this happens. The simplest fix is to actually invoke a `ver-stub` function somewhere
+The `ver-stub-build` crate and the `ver-stub-tool` use `readobj` to get the section and it's size before calling objcopy, and do the right thing if it doesn't exist, so you won't notice this with the first two methods.
+If you are using `cargo objcopy` directly, however, `objcopy` will fail with an error if this happens. The simplest fix is to actually invoke a `ver-stub` function somewhere
 in `main.rs`.
 
 ### will you support all the data that `vergen` does?
