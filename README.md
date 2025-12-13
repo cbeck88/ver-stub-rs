@@ -66,11 +66,18 @@ There are three recommended approaches.
 This approach uses cargo's artifact dependencies feature to create a post-build crate that
 patches the binary automatically. It's the cleanest solution but requires nightly.
 
+First install the `llvm-tools` if you haven't already.
+
+```sh
+$ rustup component add llvm-tools
+```
+
 Create a new crate in the same workspace, with a `build.rs` and an empty `lib.rs`.
 
 It should declare a *build dependency* on your binary crate, with an artifact dependency on the bin.
 
 ```toml
+[build-dependencies]
 my-crate = { path = "../my-crate", artifact = "bin" }
 ```
 
@@ -88,7 +95,8 @@ fn main() {
 ```
 
 When cargo runs this `build.rs`, it runs an `objcopy` command to patch the linker section,
-and produces another binary (`bin_name.bin`) in `target/release` or `target/debug` according to the build profile.
+and produces another binary (`bin_name.bin`) in `target/release` or `target/debug`, (or `target/<triple>/release` etc.)
+according to the build profile.
 This `build.rs` only runs when its input (the unpatched binary) changes, or when the git information changes.
 
 Artifact dependencies are an unstable feature of cargo, so you will have to use nightly for this approach to work.
@@ -104,15 +112,15 @@ cargo +nightly build   # builds target/debug/ver-stub-example and auto-patches t
 Install the `ver-stub` CLI tool:
 
 ```sh
-cargo install ver-stub-tool
-rustup component add llvm-tools
+$ cargo install ver-stub-tool
+$ rustup component add llvm-tools
 ```
 
 Then build your binary normally and patch it afterward:
 
 ```sh
-cargo build --release
-ver-stub --all-git --build-timestamp patch target/release/my_bin
+$ cargo build --release
+$ ver-stub --all-git --build-timestamp patch target/release/my_bin
 ```
 
 This produces a patched binary at `target/release/my_bin.bin`.
@@ -120,7 +128,7 @@ This produces a patched binary at `target/release/my_bin.bin`.
 You can also specify a custom output path:
 
 ```sh
-ver-stub --all-git --build-timestamp patch target/release/my_bin -o dist/my_bin
+$ ver-stub --all-git --build-timestamp patch target/release/my_bin -o dist/my_bin
 ```
 
 For ergonomics, put this in:
@@ -141,15 +149,15 @@ ver-stub --all-git --all-build-time patch ver-stub-example/target/debug/ver-stub
 An alternative that gives you more control is to use `cargo objcopy` from [`cargo-binutils`](https://crates.io/crates/cargo-binutils):
 
 ```sh
-cargo install cargo-binutils
-rustup component add llvm-tools
+$ cargo install cargo-binutils
+$ rustup component add llvm-tools
 ```
 
 Generate the section data file, then use `cargo objcopy`:
 
 ```sh
-ver-stub --all-git --build-timestamp -o target/ver_stub_data
-cargo objcopy --release --bin my_prog -- --update-section .ver_stub=target/ver_stub_data -O dist/my_prog.bin
+$ ver-stub --all-git --build-timestamp -o target/ver_stub_data
+$ cargo objcopy --release --bin my_prog -- --update-section ver_stub=target/ver_stub_data -O dist/my_prog.bin
 ```
 
 This is very similar to the `ver-stub patch` approach, but has a few differences:
@@ -168,6 +176,8 @@ This is very similar to the `ver-stub patch` approach, but has a few differences
     when `ver-stub patch` is used, it reads the buffer size from the target to be patched first, before objcopy,
     so it always knows the correct size, and if the section got garbage collected, it does the right thing and
     doesn't produce an error.
+ * The section name is platform-specific -- MACH-O (macos) requires the format `__TEXT,ver_stub`, and this detail
+   gets exposed to you when you use objcopy on a mac.
 
 ### Summary
 
