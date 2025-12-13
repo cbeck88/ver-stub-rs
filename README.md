@@ -283,7 +283,7 @@ Most likely not.
 
   which can be read easily using `readelf -n` and `readelf -p .comment`.
 
-* My main motivation was to avoid the hit to build times that occurs when data that "logically" isn't already a dependency of the code,
+* My main motivation was to avoid the hit to build times that occurs when data that "logically" isn't already a dependency of the binary,
   like git state, build timestamp, is injected into the code, and `cargo` rebuilds everything out of an abundance of caution.
 
   If your compiler changes, or your opt level changes, or your cargo features change, cargo already has to rebuild, whether or
