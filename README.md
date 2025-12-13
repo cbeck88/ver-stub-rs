@@ -162,7 +162,7 @@ $ cargo objcopy --release --bin my_prog -- --update-section ver_stub=target/ver_
 
 This is very similar to the `ver-stub patch` approach, but has a few differences:
 
-* You can pass aditional flags to objcopy if you want to, like `--strip-all` or other section update operations,
+* You can pass additional flags to objcopy if you want to, like `--strip-all` or other section update operations,
   and do it all in one shot.
 * If you are cross-compiling, you don't have to specify the path `target/<triple>/release` because `cargo objcopy`
   works it out automatically for you, which might be nicer.
