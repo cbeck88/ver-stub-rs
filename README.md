@@ -35,8 +35,9 @@ If it is never filled in, then the section is all 0s, and at
 runtime your program safely reports that it doesn't have build information available and otherwise works correctly.
 
 There are several possible workflows to perform the patching, but the main ones use `llvm-tools` installed by `rustup`
-which match the version of llvm used by your version of `rustc`, on whatever platform you are working on. CI covers
-linux, mac, and windows at time of writing.
+which match the version of llvm used by your version of `rustc`, on whatever platform you are working on.
+
+CI covers linux, mac, and windows at time of writing, as well as linux cross-compiling from x86-64 to arm64.
 
 ## Quickstart
 

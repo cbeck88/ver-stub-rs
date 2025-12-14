@@ -43,6 +43,12 @@ jobs:
         cargo install cargo-binutils
         rustup component add llvm-tools
         rustup component add llvm-tools --toolchain nightly
+    - name: Install ARM64 cross-compilation toolchain (Linux only)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu qemu-user
+        rustup target add aarch64-unknown-linux-gnu
     - name: Rust build caching
       uses: Swatinem/rust-cache@v2
       with:
@@ -54,6 +60,9 @@ jobs:
       run: cargo test --verbose
     - name: Run tests.sh
       run: ./tests.sh
+    - name: Run cross-compilation tests (Linux only)
+      if: runner.os == 'Linux'
+      run: ./test_cross.sh
     - name: Check dirty git
       uses: ./.github/actions/check-dirty-git
 
