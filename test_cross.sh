@@ -80,23 +80,21 @@ fi
 # Test: Run the patched ARM64 binary with QEMU user-mode emulation
 echo
 echo "--- Test: Run ARM64 binary with QEMU ---"
-if command -v qemu-aarch64 &> /dev/null; then
-    OUTPUT=$(qemu-aarch64 -L /usr/aarch64-linux-gnu "$ARM_BIN_PATCHED" 2>&1)
-    echo "$OUTPUT"
-    if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
-        pass "ARM64 binary runs and shows git sha"
-    else
-        fail "ARM64 binary should show git sha"
-    fi
-    if echo "$OUTPUT" | grep -q "build timestamp:" && ! echo "$OUTPUT" | grep -q "build timestamp:.*not set"; then
-        pass "ARM64 binary shows build timestamp"
-    else
-        fail "ARM64 binary should show build timestamp"
-    fi
+if ! command -v qemu-aarch64 &> /dev/null; then
+    fail "qemu-aarch64 not found. Install with: sudo apt-get install qemu-user"
+fi
+
+OUTPUT=$(qemu-aarch64 -L /usr/aarch64-linux-gnu "$ARM_BIN_PATCHED" 2>&1)
+echo "$OUTPUT"
+if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
+    pass "ARM64 binary runs and shows git sha"
 else
-    echo "qemu-aarch64 not found, skipping runtime test"
-    echo "Install with: sudo apt-get install qemu-user"
-    pass "ARM64 QEMU runtime test skipped (qemu-aarch64 not installed)"
+    fail "ARM64 binary should show git sha"
+fi
+if echo "$OUTPUT" | grep -q "build timestamp:" && ! echo "$OUTPUT" | grep -q "build timestamp:.*not set"; then
+    pass "ARM64 binary shows build timestamp"
+else
+    fail "ARM64 binary should show build timestamp"
 fi
 
 echo
