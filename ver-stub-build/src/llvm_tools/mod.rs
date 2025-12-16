@@ -58,8 +58,7 @@ impl LlvmTools {
         let readobj_path = self.bin_dir.join(format!("llvm-readobj{}", EXE_SUFFIX));
 
         let mut cmd = Command::new(&readobj_path);
-        cmd.arg("--sections");
-        cmd.arg(bin);
+        cmd.arg("--sections").arg(bin);
 
         if self.dry_run {
             eprintln!("{cmd:#?}");
@@ -131,10 +130,10 @@ impl LlvmTools {
         let update_arg = format!("{}={}", section_name, section_file.display());
 
         let mut cmd = Command::new(&objcopy_path);
-        cmd.arg("--update-section");
-        cmd.arg(&update_arg);
-        cmd.arg(input);
-        cmd.arg(output);
+        cmd.arg("--update-section")
+            .arg(&update_arg)
+            .arg(input)
+            .arg(output);
 
         if self.dry_run {
             eprintln!("{cmd:#?}");
@@ -183,13 +182,13 @@ impl LlvmTools {
         let update_arg = format!("{}=/dev/stdin", section_name);
 
         let mut cmd = Command::new(&objcopy_path);
-        cmd.arg("--update-section");
-        cmd.arg(&update_arg);
-        cmd.arg(input);
-        cmd.arg(output);
-        cmd.stdin(Stdio::piped());
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::piped());
+        cmd.arg("--update-section")
+            .arg(&update_arg)
+            .arg(input)
+            .arg(output)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
 
         if self.dry_run {
             eprintln!("{cmd:#?}");
@@ -252,8 +251,8 @@ impl LlvmTools {
         let objcopy_path = self.bin_dir.join(format!("llvm-objcopy{}", EXE_SUFFIX));
         let update_arg = format!("{}={}", section_name, temp_file.path().display());
 
-        let cmd = Command::new(&objcopy_path)
-            .arg("--update-section")
+        let mut cmd = Command::new(&objcopy_path);
+        cmd.arg("--update-section")
             .arg(&update_arg)
             .arg(input)
             .arg(output);
