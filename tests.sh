@@ -45,7 +45,7 @@ echo
 echo "--- Building ver-stub CLI tool ---"
 cargo build -p ver-stub-tool 2>&1
 VER_STUB="$(pwd)/target/debug/ver-stub${EXE_SUFFIX}"
-SECTION_NAME=$($VER_STUB print-section-name)
+SECTION_NAME=$($VER_STUB print-host-section-name)
 echo "Section name: $SECTION_NAME"
 echo
 
