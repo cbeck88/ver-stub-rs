@@ -52,9 +52,9 @@ jobs:
     - name: Install Linux cross-compilation toolchain (macOS)
       if: runner.os == 'macOS'
       run: |
-        brew install filosottile/musl-cross/musl-cross
-        cargo install --git https://github.com/mathetake/alvm
+        brew install filosottile/musl-cross/musl-cross zig
         rustup target add aarch64-unknown-linux-musl
+        cargo install --git https://github.com/mathetake/alvm --rev ea6d3a1
     - name: Rust build caching
       uses: Swatinem/rust-cache@v2
       with:
