@@ -1,11 +1,11 @@
 #!/bin/bash
-# Test cross-compilation from macOS to Linux
-# This script is meant to be run on macOS to reproduce issue #2
+# Test cross-compilation from macOS to Linux (aarch64)
+# Uses alvm to run the Linux binary on macOS via Hypervisor.framework
 set -e
 
 cd "$(dirname "$0")"
 
-echo "=== Testing ver-stub-rs cross-compilation: macOS -> Linux ==="
+echo "=== Testing ver-stub-rs cross-compilation: macOS -> Linux (aarch64) ==="
 echo
 
 # Verify we're on macOS
@@ -39,21 +39,21 @@ cargo build -p ver-stub-tool 2>&1
 VER_STUB="$(pwd)/target/debug/ver-stub"
 echo
 
-# Test: Cross-compilation to Linux (x86_64-unknown-linux-musl)
-echo "--- Test: Cross-compilation to Linux x86_64 (musl) ---"
+# Test: Cross-compilation to Linux (aarch64-unknown-linux-musl)
+echo "--- Test: Cross-compilation to Linux aarch64 (musl) ---"
 
 # Requires musl cross-linker. On macOS with Homebrew:
 #   brew install filosottile/musl-cross/musl-cross
 
 # Add the Linux musl target
-rustup target add x86_64-unknown-linux-musl 2>&1
+rustup target add aarch64-unknown-linux-musl 2>&1
 
 # Clean any previous cross-compiled artifacts
-rm -rf ver-stub-example/target/x86_64-unknown-linux-musl 2>/dev/null || true
+rm -rf ver-stub-example/target/aarch64-unknown-linux-musl 2>/dev/null || true
 
 # Build for Linux musl
-(cd ver-stub-example && cargo build --target x86_64-unknown-linux-musl 2>&1)
-LINUX_BIN="ver-stub-example/target/x86_64-unknown-linux-musl/debug/ver-stub-example"
+(cd ver-stub-example && cargo build --target aarch64-unknown-linux-musl 2>&1)
+LINUX_BIN="ver-stub-example/target/aarch64-unknown-linux-musl/debug/ver-stub-example"
 
 if [[ ! -f "$LINUX_BIN" ]]; then
     fail "Linux binary was not created"
@@ -61,17 +61,6 @@ fi
 
 echo
 echo "--- Checking section in cross-compiled binary ---"
-
-# Show what section name ver-stub-build is using (compiled on macOS)
-echo "Section name that ver-stub-build is using (from macOS host):"
-echo "  Expected for ELF: ver_stub"
-echo "  But macOS build uses: __TEXT,ver_stub"
-echo
-
-# Use llvm-readobj to see what sections actually exist in the ELF binary
-echo "Sections in the ELF binary:"
-llvm-readobj --sections "$LINUX_BIN" 2>&1 | grep -A2 "Name:" | head -40 || true
-echo
 
 # Try to get section info with ver-stub tool
 echo "Attempting to get section info with ver-stub tool..."
@@ -112,14 +101,14 @@ else
     fail "patched Linux binary should have ver_stub section"
 fi
 
-# Run the patched binary with QEMU
+# Run the patched binary with alvm
 echo
-echo "--- Test: Run Linux binary with QEMU ---"
-if ! command -v qemu-x86_64 &> /dev/null; then
-    warn "qemu-x86_64 not found - skipping runtime test"
-    warn "Install with: brew install qemu"
+echo "--- Test: Run Linux binary with alvm ---"
+if ! command -v alvm &> /dev/null; then
+    warn "alvm not found - skipping runtime test"
+    warn "Install with: cargo install alvm"
 else
-    OUTPUT=$(qemu-x86_64 "$LINUX_BIN_PATCHED" 2>&1)
+    OUTPUT=$(alvm -- "$LINUX_BIN_PATCHED" 2>&1)
     echo "$OUTPUT"
     if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
         pass "Linux binary runs and shows git sha"
