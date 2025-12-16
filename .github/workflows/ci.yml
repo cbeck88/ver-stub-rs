@@ -70,8 +70,6 @@ jobs:
       run: ./test_cross_linux_host.sh
     - name: Run cross-compilation tests (macOS)
       if: runner.os == 'macOS'
-      # Expected to fail until issue #2 is fixed (confirms cross-compile section name bug)
-      continue-on-error: true
       run: ./test_cross_macos_host.sh
     - name: Check dirty git
       uses: ./.github/actions/check-dirty-git
