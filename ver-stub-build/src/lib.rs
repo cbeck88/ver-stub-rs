@@ -19,20 +19,23 @@
 //!     LinkSection::new()
 //!         .with_all_git()
 //!         .patch_into_bin_dep("my-dep", "my-bin")
-//!         .write_to_target_profile_dir();
+//!         .write_to_target_profile_dir()
+//!         .unwrap();
 //!
 //!     // Or with a custom output name
 //!     LinkSection::new()
 //!         .with_all_git()
 //!         .patch_into_bin_dep("my-dep", "my-bin")
 //!         .with_filename("my-custom-name")
-//!         .write_to_target_profile_dir();
+//!         .write_to_target_profile_dir()
+//!         .unwrap();
 //!
 //!     // Or at a custom destination
 //!     LinkSection::new()
 //!         .with_all_git()
 //!         .patch_into_bin_dep("my-dep", "my-bin")
-//!         .write_to("dist/my-bin");
+//!         .write_to("dist/my-bin")
+//!         .unwrap();
 //! }
 //! ```
 //!
@@ -51,24 +54,30 @@
 //!     LinkSection::new()
 //!         .with_all_git()
 //!         .patch_into("/path/to/binary")
-//!         .write_to_target_profile_dir();
+//!         .write_to_target_profile_dir()
+//!         .unwrap();
 //!
 //!     // Or with a custom output name
 //!     LinkSection::new()
 //!         .with_all_git()
 //!         .patch_into("/path/to/binary")
 //!         .with_filename("my-custom-name")
-//!         .write_to_target_profile_dir();
+//!         .write_to_target_profile_dir()
+//!         .unwrap();
 //!
 //!     // Or just write the section data file (for use with cargo-objcopy)
 //!     LinkSection::new()
 //!         .with_all_git()
-//!         .write_to_out_dir();
+//!         .write_to_out_dir()
+//!         .unwrap();
 //! }
 //! ```
 
 /// Cargo build script helper functions.
 mod cargo_helpers;
+
+/// Error types for ver-stub-build operations.
+mod error;
 
 /// Helpers for interacting with git
 mod git_helpers;
@@ -82,6 +91,7 @@ mod rustc;
 /// Update section command for patching artifact dependency binaries.
 mod update_section;
 
+pub use error::Error;
 pub use llvm_tools::{BinaryFormat, LlvmTools, SectionInfo};
 pub use update_section::{UpdateSectionCommand, platform_section_name};
 pub use ver_stub::SECTION_NAME;
@@ -344,7 +354,7 @@ impl LinkSection {
     /// run objcopy with the generated section file.
     ///
     /// Returns the path to the written file.
-    pub fn write_to(self, path: impl AsRef<Path>) -> PathBuf {
+    pub fn write_to(self, path: impl AsRef<Path>) -> Result<PathBuf, Error> {
         self.write_section_to_path(path.as_ref())
     }
 
@@ -353,7 +363,7 @@ impl LinkSection {
     /// This is a convenience method for use in build scripts.
     ///
     /// Returns the path to the written file.
-    pub fn write_to_out_dir(self) -> PathBuf {
+    pub fn write_to_out_dir(self) -> Result<PathBuf, Error> {
         let out_dir = cargo_helpers::out_dir();
         self.write_section_to_path(&out_dir)
     }
@@ -377,7 +387,7 @@ impl LinkSection {
     /// [env]
     /// CARGO_TARGET_DIR = { value = "target", relative = true }
     /// ```
-    pub fn write_to_target_dir(self) -> PathBuf {
+    pub fn write_to_target_dir(self) -> Result<PathBuf, Error> {
         let target_dir = cargo_helpers::target_dir();
         self.write_section_to_path(&target_dir)
     }
@@ -433,7 +443,7 @@ impl LinkSection {
         }
     }
 
-    pub(crate) fn write_section_to_path(self, path: &Path) -> PathBuf {
+    pub(crate) fn write_section_to_path(self, path: &Path) -> Result<PathBuf, Error> {
         let buffer = self.build_section_bytes();
 
         // Write to file - if path is a directory, append ver_stub_data
@@ -442,9 +452,12 @@ impl LinkSection {
         } else {
             path.to_path_buf()
         };
-        fs::write(&output_path, &buffer).expect("ver-stub-build: failed to write section file");
+        fs::write(&output_path, &buffer).map_err(|source| Error::WriteSectionFile {
+            path: output_path.clone(),
+            source,
+        })?;
 
-        output_path
+        Ok(output_path)
     }
 }
 

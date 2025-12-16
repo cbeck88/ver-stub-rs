@@ -192,7 +192,8 @@ fn main() {
             section
                 .patch_into(input)
                 .dry_run(dry_run)
-                .write_to(&output_path);
+                .write_to(&output_path)
+                .unwrap();
         }
         Some(Command::PrintHostSectionName) => {
             println!("{}", ver_stub_build::SECTION_NAME);
@@ -225,7 +226,7 @@ fn main() {
                 eprintln!("error: --output is required when not using a subcommand");
                 std::process::exit(1);
             };
-            let output_path = section.write_to(&output);
+            let output_path = section.write_to(&output).unwrap();
             eprintln!("ver-stub: wrote {}", output_path.display());
         }
     }

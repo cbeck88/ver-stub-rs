@@ -2,6 +2,7 @@
 // https://github.com/rust-embedded/cargo-binutils/blob/07e280d97afe53c0ed24654eb85b39507ac7d6ab/src/rustc.rs#L15
 
 use std::env;
+use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -11,7 +12,7 @@ use std::process::Command;
 ///
 /// Tools like `llvm-objcopy` and `llvm-readelf` can be found by joining
 /// their name (with platform executable suffix) to this path.
-pub fn llvm_tools_bin_dir() -> Result<PathBuf, String> {
+pub fn llvm_tools_bin_dir() -> io::Result<PathBuf> {
     let sysroot = get_sysroot()?;
     let host = get_host()?;
 
@@ -24,36 +25,29 @@ pub fn llvm_tools_bin_dir() -> Result<PathBuf, String> {
     Ok(path)
 }
 
-fn get_sysroot() -> Result<String, String> {
+fn get_sysroot() -> io::Result<String> {
     let rustc = env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
-    let output = Command::new(rustc)
-        .arg("--print")
-        .arg("sysroot")
-        .output()
-        .map_err(|e| format!("failed to execute 'rustc --print sysroot': {}", e))?;
+    let output = Command::new(rustc).arg("--print").arg("sysroot").output()?;
 
     if !output.status.success() {
-        return Err("'rustc --print sysroot' failed".to_string());
+        return Err(io::Error::other("'rustc --print sysroot' failed"));
     }
 
     String::from_utf8(output.stdout)
         .map(|s| s.trim().to_owned())
-        .map_err(|_| "sysroot is not valid UTF-8".to_string())
+        .map_err(|_| io::Error::other("sysroot is not valid UTF-8"))
 }
 
-fn get_host() -> Result<String, String> {
+fn get_host() -> io::Result<String> {
     let rustc = env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
-    let output = Command::new(rustc)
-        .arg("-vV")
-        .output()
-        .map_err(|e| format!("failed to execute 'rustc -vV': {}", e))?;
+    let output = Command::new(rustc).arg("-vV").output()?;
 
     if !output.status.success() {
-        return Err("'rustc -vV' failed".to_string());
+        return Err(io::Error::other("'rustc -vV' failed"));
     }
 
-    let stdout =
-        String::from_utf8(output.stdout).map_err(|_| "'rustc -vV' output is not valid UTF-8")?;
+    let stdout = String::from_utf8(output.stdout)
+        .map_err(|_| io::Error::other("'rustc -vV' output is not valid UTF-8"))?;
 
     for line in stdout.lines() {
         if let Some(host) = line.strip_prefix("host: ") {
@@ -61,5 +55,7 @@ fn get_host() -> Result<String, String> {
         }
     }
 
-    Err("could not determine host target from 'rustc -vV'".to_string())
+    Err(io::Error::other(
+        "could not determine host target from 'rustc -vV'",
+    ))
 }

@@ -4,6 +4,7 @@ use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::Error;
 use crate::LinkSection;
 use crate::cargo_helpers::{self, cargo_rerun_if, cargo_warning};
 use crate::llvm_tools::{BinaryFormat, LlvmTools};
@@ -62,7 +63,7 @@ impl UpdateSectionCommand {
     ///
     /// If the section doesn't exist in the input binary, a warning is logged and the
     /// binary is copied without modification.
-    pub fn write_to(self, path: impl AsRef<Path>) {
+    pub fn write_to(self, path: impl AsRef<Path>) -> Result<(), Error> {
         eprintln!("ver-stub-build: input binary = {}", self.bin_path.display());
 
         // Emit rerun-if-changed for the input binary
@@ -99,13 +100,7 @@ impl UpdateSectionCommand {
             path.to_path_buf()
         };
 
-        let mut llvm = LlvmTools::new().unwrap_or_else(|e| {
-            panic!(
-                "ver-stub-build: could not find LLVM tools directory: {}\n\
-                 Please install llvm-tools: rustup component add llvm-tools",
-                e
-            )
-        });
+        let mut llvm = LlvmTools::new().map_err(|source| Error::LlvmToolsNotFound { source })?;
 
         if self.dry_run {
             llvm.set_dry_run(true);
@@ -114,12 +109,10 @@ impl UpdateSectionCommand {
         // Get section info from the binary
         let (binary_format, section_name, section_info) = llvm
             .get_section_info(&self.bin_path, platform_section_name)
-            .unwrap_or_else(|e| {
-                panic!(
-                    "ver-stub-build: failed to find section from {}: {e}",
-                    self.bin_path.display()
-                )
-            });
+            .map_err(|source| Error::GetSectionInfo {
+                binary_path: self.bin_path.clone(),
+                source,
+            })?;
 
         match section_info {
             Some(info) => {
@@ -143,13 +136,10 @@ impl UpdateSectionCommand {
                     &section_name,
                     &section_bytes,
                 )
-                .unwrap_or_else(|e| {
-                    panic!(
-                        "ver-stub-build: failed to update section in {}: {}",
-                        self.bin_path.display(),
-                        e
-                    )
-                });
+                .map_err(|source| Error::UpdateSection {
+                    binary_path: self.bin_path.clone(),
+                    source,
+                })?;
                 if !self.dry_run {
                     eprintln!(
                         "ver-stub-build: wrote patched binary to {}",
@@ -165,14 +155,11 @@ impl UpdateSectionCommand {
                     self.bin_path.display()
                 ));
                 if !self.dry_run {
-                    fs::copy(&self.bin_path, &output_path).unwrap_or_else(|e| {
-                        panic!(
-                            "ver-stub-build: failed to copy {} to {}: {}",
-                            self.bin_path.display(),
-                            output_path.display(),
-                            e
-                        )
-                    });
+                    fs::copy(&self.bin_path, &output_path).map_err(|source| Error::CopyBinary {
+                        from: self.bin_path.clone(),
+                        to: output_path.clone(),
+                        source,
+                    })?;
                     eprintln!("ver-stub-build: copied to {}", output_path.display());
                 } else {
                     eprintln!(
@@ -182,6 +169,8 @@ impl UpdateSectionCommand {
                 }
             }
         }
+
+        Ok(())
     }
 
     /// Writes the patched binary to the target profile directory (e.g., `target/debug/`).
@@ -194,8 +183,8 @@ impl UpdateSectionCommand {
     /// - <https://github.com/rust-lang/cargo/issues/9661#issuecomment-1769481293>
     /// - <https://github.com/rust-lang/cargo/issues/9661#issuecomment-2159267601>
     /// - <https://github.com/rust-lang/cargo/issues/13663>
-    pub fn write_to_target_profile_dir(self) {
+    pub fn write_to_target_profile_dir(self) -> Result<(), Error> {
         let target_dir = cargo_helpers::target_profile_dir();
-        self.write_to(target_dir);
+        self.write_to(target_dir)
     }
 }

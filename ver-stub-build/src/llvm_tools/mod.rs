@@ -39,7 +39,7 @@ pub struct LlvmTools {
 
 impl LlvmTools {
     /// Creates a new `LlvmTools` instance by locating the LLVM tools directory.
-    pub fn new() -> Result<Self, String> {
+    pub fn new() -> io::Result<Self> {
         let bin_dir = rustc::llvm_tools_bin_dir()?;
         Ok(Self {
             bin_dir,
