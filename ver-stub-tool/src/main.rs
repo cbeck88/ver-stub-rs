@@ -2,7 +2,7 @@ use conf::{Conf, Subcommands};
 use std::path::PathBuf;
 use ver_stub_build::{LinkSection, LlvmTools};
 
-/// Inject git and build metadata into binaries via the .ver_stub linker section.
+/// Inject git and build metadata into binaries via the ver_stub linker section.
 ///
 /// Two modes of operation:
 ///
@@ -78,7 +78,7 @@ enum Command {
     ///
     /// Example: ver-stub --all-git patch target/release/my-bin
     ///
-    /// This reads the input binary, updates its .ver_stub section with
+    /// This reads the input binary, updates its ver_stub section with
     /// the requested version info, and writes the result to {input}.bin
     /// (or to the specified output path).
     ///
@@ -97,7 +97,7 @@ enum Command {
     /// Print the platform-specific linker section name and exit.
     ///
     /// Useful for scripts that need to use cargo objcopy directly.
-    /// Returns ".ver_stub" on ELF (Linux) or "__TEXT,__ver_stub" on Mach-O (macOS).
+    /// Returns "ver_stub" on ELF/COFF (Linux/Windows) or "__TEXT,ver_stub" on Mach-O (macOS).
     PrintSectionName,
 
     /// Get section info from a binary and print it.

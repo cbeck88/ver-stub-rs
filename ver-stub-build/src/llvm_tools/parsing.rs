@@ -65,7 +65,7 @@ fn parse_size(size_str: &str) -> io::Result<usize> {
 /// ```text
 /// Section {
 ///   Index: 16
-///   Name: .ver_stub (472)
+///   Name: ver_stub (472)
 ///   Type: SHT_PROGBITS (0x1)
 ///   Flags [ (0x2)
 ///     SHF_ALLOC (0x2)

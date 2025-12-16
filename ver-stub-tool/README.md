@@ -31,7 +31,7 @@ For use with `cargo objcopy` or other tools:
 
 ```sh
 ver-stub --all-git --build-timestamp -o target/ver_stub_data
-cargo objcopy --release --bin my-bin -- --update-section .ver_stub=target/ver_stub_data my-bin.bin
+cargo objcopy --release --bin my-bin -- --update-section ver_stub=target/ver_stub_data my-bin.bin
 ```
 
 ## Options

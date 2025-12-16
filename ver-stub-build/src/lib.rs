@@ -363,7 +363,7 @@ impl LinkSection {
     ///
     /// This is useful for `cargo objcopy` workflows where you want to run:
     /// ```bash
-    /// cargo objcopy --release --bin my_bin -- --update-section .ver_stub=target/ver_stub_data my_bin.bin
+    /// cargo objcopy --release --bin my_bin -- --update-section ver_stub=target/ver_stub_data my_bin.bin
     /// ```
     ///
     /// The target directory is determined by checking `CARGO_TARGET_DIR` first,

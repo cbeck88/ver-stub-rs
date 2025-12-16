@@ -234,7 +234,7 @@ In a large project it can be very complicated to figure out why two engineers go
 [`ahash/const-random` feature](https://docs.rs/crate/ahash/latest/features#const-random), which was intentionally injecting random numbers into the build,
 and being enabled transitively by a dependency.
 
-When using `ver-stub`, you can easily dump the `.ver_stub` sections from the two binaries and compare them, or, zero them both out and then compute hashes.
+When using `ver-stub`, you can easily dump the `ver_stub` sections from the two binaries and compare them, or, zero them both out and then compute hashes.
 If there are still differences, you have working binaries that you can use with other tools from that point.
 
 ## Additional configuration

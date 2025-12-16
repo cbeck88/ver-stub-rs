@@ -48,9 +48,9 @@ fi
 OUTPUT=$($VER_STUB get-section-info "$ARM_BIN" 2>&1)
 echo "$OUTPUT"
 if echo "$OUTPUT" | grep -q "size:"; then
-    pass "cross-compiled ARM64 binary has .ver_stub section"
+    pass "cross-compiled ARM64 binary has ver_stub section"
 else
-    fail "cross-compiled ARM64 binary should have .ver_stub section"
+    fail "cross-compiled ARM64 binary should have ver_stub section"
 fi
 
 # Patch the ARM binary with ver-stub
@@ -65,9 +65,9 @@ fi
 OUTPUT=$($VER_STUB get-section-info "$ARM_BIN_PATCHED" 2>&1)
 echo "$OUTPUT"
 if echo "$OUTPUT" | grep -q "size:"; then
-    pass "patched ARM64 binary has .ver_stub section"
+    pass "patched ARM64 binary has ver_stub section"
 else
-    fail "patched ARM64 binary should have .ver_stub section"
+    fail "patched ARM64 binary should have ver_stub section"
 fi
 
 # Verify section is read-only

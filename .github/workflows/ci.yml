@@ -43,12 +43,17 @@ jobs:
         cargo install cargo-binutils
         rustup component add llvm-tools
         rustup component add llvm-tools --toolchain nightly
-    - name: Install ARM64 cross-compilation toolchain (Linux only)
+    - name: Install ARM64 cross-compilation toolchain (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc-aarch64-linux-gnu qemu-user
         rustup target add aarch64-unknown-linux-gnu
+    - name: Install Linux cross-compilation toolchain (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install filosottile/musl-cross/musl-cross qemu
+        rustup target add x86_64-unknown-linux-musl
     - name: Rust build caching
       uses: Swatinem/rust-cache@v2
       with:
@@ -60,9 +65,14 @@ jobs:
       run: cargo test --verbose
     - name: Run tests.sh
       run: ./tests.sh
-    - name: Run cross-compilation tests (Linux only)
+    - name: Run cross-compilation tests (Linux)
       if: runner.os == 'Linux'
-      run: ./test_cross.sh
+      run: ./test_cross_linux_host.sh
+    - name: Run cross-compilation tests (macOS)
+      if: runner.os == 'macOS'
+      # Expected to fail until issue #2 is fixed (confirms cross-compile section name bug)
+      continue-on-error: true
+      run: ./test_cross_macos_host.sh
     - name: Check dirty git
       uses: ./.github/actions/check-dirty-git
 
