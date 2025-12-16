@@ -108,7 +108,7 @@ if ! command -v alvm &> /dev/null; then
     warn "alvm not found - skipping runtime test"
     warn "Install with: cargo install alvm"
 else
-    OUTPUT=$(alvm -- "$LINUX_BIN_PATCHED" 2>&1)
+    OUTPUT=$(alvm -- "$LINUX_BIN_PATCHED" 2>&1) || true
     echo "$OUTPUT"
     if echo "$OUTPUT" | grep -q "git sha:" && ! echo "$OUTPUT" | grep -q "git sha:.*not set"; then
         pass "Linux binary runs and shows git sha"
