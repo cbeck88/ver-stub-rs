@@ -53,7 +53,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install filosottile/musl-cross/musl-cross
-        cargo install alvm
+        cargo install --git https://github.com/mathetake/alvm
         rustup target add aarch64-unknown-linux-musl
     - name: Rust build caching
       uses: Swatinem/rust-cache@v2
