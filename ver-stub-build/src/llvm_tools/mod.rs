@@ -8,7 +8,15 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::rustc;
-use parsing::{BinaryFormat, parse_coff_sections, parse_elf_sections, parse_macho_sections};
+use parsing::{parse_coff_sections, parse_elf_sections, parse_macho_sections};
+
+/// Binary format detected from llvm-readobj output.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryFormat {
+    Elf,
+    MachO,
+    Coff,
+}
 
 /// Information about a section in a binary.
 #[derive(Debug, Clone)]
@@ -47,13 +55,17 @@ impl LlvmTools {
 
     /// Gets information about a section in a binary.
     ///
+    /// Allows that the section name of interest may depend on the format of the binary.
+    ///
+    /// Returns:
+    /// Ok((binary_format, section_name, section_info_if_found))
     /// Returns `Ok(Some(SectionInfo))` if the section exists, `Ok(None)` if it doesn't,
     /// or `Err` if there was an error executing llvm-readobj or parsing the output.
     pub fn get_section_info(
         &self,
         bin: impl AsRef<Path>,
-        section_name: &str,
-    ) -> io::Result<Option<SectionInfo>> {
+        section_name_fn: impl FnOnce(BinaryFormat) -> io::Result<String>,
+    ) -> io::Result<(BinaryFormat, String, Option<SectionInfo>)> {
         let bin = bin.as_ref();
         let readobj_path = self.bin_dir.join(format!("llvm-readobj{}", EXE_SUFFIX));
 
@@ -80,20 +92,25 @@ impl LlvmTools {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
 
+        let binary_format = BinaryFormat::detect(&stdout).ok_or_else(|| {
+            eprintln!("Could not detect binary format. llvm-readobj output:");
+            eprintln!("{}", stdout);
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "could not detect binary format from llvm-readobj output",
+            )
+        })?;
+
+        let section_name = section_name_fn(binary_format)?;
+
         // Detect binary format and dispatch to appropriate parser
-        match BinaryFormat::detect(&stdout) {
-            BinaryFormat::Elf => parse_elf_sections(&stdout, section_name),
-            BinaryFormat::MachO => parse_macho_sections(&stdout, section_name),
-            BinaryFormat::Coff => parse_coff_sections(&stdout, section_name),
-            BinaryFormat::Unknown => {
-                eprintln!("Could not detect binary format. llvm-readobj output:");
-                eprintln!("{}", stdout);
-                Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "could not detect binary format from llvm-readobj output",
-                ))
-            }
-        }
+        let section_info = match binary_format {
+            BinaryFormat::Elf => parse_elf_sections(&stdout, &section_name),
+            BinaryFormat::MachO => parse_macho_sections(&stdout, &section_name),
+            BinaryFormat::Coff => parse_coff_sections(&stdout, &section_name),
+        }?;
+
+        Ok((binary_format, section_name, section_info))
     }
 
     /// Gets the size of a section in a binary.
@@ -107,8 +124,9 @@ impl LlvmTools {
         bin: impl AsRef<Path>,
         section_name: &str,
     ) -> io::Result<Option<usize>> {
-        self.get_section_info(bin, section_name)
-            .map(|info| info.map(|i| i.size))
+        let (_bin_fmt, _name, section_info) =
+            self.get_section_info(bin, |_| Ok(section_name.into()))?;
+        Ok(section_info.map(|i| i.size))
     }
 
     /// Updates a section in a binary using llvm-objcopy.

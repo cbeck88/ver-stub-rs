@@ -2,34 +2,25 @@
 
 use std::io;
 
-use super::SectionInfo;
-
-/// Binary format detected from llvm-readobj output.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum BinaryFormat {
-    Elf,
-    MachO,
-    Coff,
-    Unknown,
-}
+use super::{BinaryFormat, SectionInfo};
 
 impl BinaryFormat {
     /// Detect binary format from llvm-readobj output.
     /// Looks for "Format:" line in the first few lines.
-    pub(super) fn detect(output: &str) -> Self {
+    pub(crate) fn detect(output: &str) -> Option<Self> {
         for line in output.lines().take(5) {
             if let Some(format_str) = line.strip_prefix("Format:") {
                 let format_str = format_str.trim().to_lowercase();
                 if format_str.starts_with("elf") {
-                    return Self::Elf;
+                    return Some(Self::Elf);
                 } else if format_str.starts_with("mach-o") {
-                    return Self::MachO;
+                    return Some(Self::MachO);
                 } else if format_str.starts_with("coff") {
-                    return Self::Coff;
+                    return Some(Self::Coff);
                 }
             }
         }
-        Self::Unknown
+        None
     }
 }
 

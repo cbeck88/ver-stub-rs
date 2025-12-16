@@ -82,8 +82,8 @@ mod rustc;
 /// Update section command for patching artifact dependency binaries.
 mod update_section;
 
-pub use llvm_tools::{LlvmTools, SectionInfo};
-pub use update_section::UpdateSectionCommand;
+pub use llvm_tools::{BinaryFormat, LlvmTools, SectionInfo};
+pub use update_section::{UpdateSectionCommand, platform_section_name};
 pub use ver_stub::SECTION_NAME;
 
 use chrono::{DateTime, TimeZone, Utc};

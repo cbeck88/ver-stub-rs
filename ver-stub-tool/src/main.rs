@@ -1,6 +1,6 @@
 use conf::{Conf, Subcommands};
 use std::path::PathBuf;
-use ver_stub_build::{LinkSection, LlvmTools};
+use ver_stub_build::{LinkSection, LlvmTools, platform_section_name};
 
 /// Inject git and build metadata into binaries via the ver_stub linker section.
 ///
@@ -98,11 +98,11 @@ enum Command {
         dry_run: bool,
     },
 
-    /// Print the platform-specific linker section name and exit.
+    /// Print the platform-specific linker section name *for the host platform* and exit.
     ///
-    /// Useful for scripts that need to use cargo objcopy directly.
+    /// Useful for scripts that need to use cargo objcopy directly, and are not cross-compiling.
     /// Returns "ver_stub" on ELF/COFF (Linux/Windows) or "__TEXT,ver_stub" on Mach-O (macOS).
-    PrintSectionName,
+    PrintHostSectionName,
 
     /// Get section info from a binary and print it.
     ///
@@ -194,7 +194,7 @@ fn main() {
                 .dry_run(dry_run)
                 .write_to(&output_path);
         }
-        Some(Command::PrintSectionName) => {
+        Some(Command::PrintHostSectionName) => {
             println!("{}", ver_stub_build::SECTION_NAME);
         }
         Some(Command::GetSectionInfo { ref input }) => {
@@ -203,9 +203,8 @@ fn main() {
                 eprintln!("Please install llvm-tools: rustup component add llvm-tools");
                 std::process::exit(1);
             });
-            let section_name = ver_stub_build::SECTION_NAME;
-            let info = llvm
-                .get_section_info(input, section_name)
+            let (binary_format, section_name, info) = llvm
+                .get_section_info(input, platform_section_name)
                 .unwrap_or_else(|e| {
                     eprintln!(
                         "error: failed to read section info from {}: {}",
@@ -214,6 +213,7 @@ fn main() {
                     );
                     std::process::exit(1);
                 });
+            println!("format: {binary_format:?}");
             println!("section: {}", section_name);
             match info {
                 Some(info) => println!("{:#?}", info),

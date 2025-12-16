@@ -4,11 +4,21 @@ use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use ver_stub::SECTION_NAME;
-
 use crate::LinkSection;
 use crate::cargo_helpers::{self, cargo_rerun_if, cargo_warning};
-use crate::llvm_tools::LlvmTools;
+use crate::llvm_tools::{BinaryFormat, LlvmTools};
+
+/// The section name is platform specific, and needs to depend on the
+/// target platform. This function gets the correct name for each binary format.
+/// (ver_stub::SECTION_NAME is the name for the *host* platform
+/// and so is less useful)
+pub fn platform_section_name(binary_format: BinaryFormat) -> std::io::Result<String> {
+    Ok(match binary_format {
+        BinaryFormat::MachO => "__TEXT,ver_stub",
+        _ => "ver_stub",
+    }
+    .into())
+}
 
 /// Builder for updating sections in a binary.
 ///
@@ -102,13 +112,12 @@ impl UpdateSectionCommand {
         }
 
         // Get section info from the binary
-        let section_info = llvm
-            .get_section_info(&self.bin_path, SECTION_NAME)
+        let (binary_format, section_name, section_info) = llvm
+            .get_section_info(&self.bin_path, platform_section_name)
             .unwrap_or_else(|e| {
                 panic!(
-                    "ver-stub-build: failed to read section info from {}: {}",
-                    self.bin_path.display(),
-                    e
+                    "ver-stub-build: failed to find section from {}: {e}",
+                    self.bin_path.display()
                 )
             });
 
@@ -117,8 +126,8 @@ impl UpdateSectionCommand {
                 // Warn if section is writable (should be read-only for security)
                 if info.is_writable {
                     cargo_warning(&format!(
-                        "section '{}' is writable; this is a minor bug, it should be in a read-only segment",
-                        SECTION_NAME
+                        "section '{}' is writable ({binary_format:?}); this is a minor bug, it should be in a read-only segment",
+                        section_name
                     ));
                 }
 
@@ -131,7 +140,7 @@ impl UpdateSectionCommand {
                 llvm.update_section_with_bytes(
                     &self.bin_path,
                     &output_path,
-                    SECTION_NAME,
+                    &section_name,
                     &section_bytes,
                 )
                 .unwrap_or_else(|e| {
@@ -152,7 +161,7 @@ impl UpdateSectionCommand {
                 // Section doesn't exist, copy binary without modification
                 cargo_warning(&format!(
                     "section '{}' not found in {}, copying without modification",
-                    SECTION_NAME,
+                    section_name,
                     self.bin_path.display()
                 ));
                 if !self.dry_run {
