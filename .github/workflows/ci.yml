@@ -52,9 +52,8 @@ jobs:
     - name: Install Linux cross-compilation toolchain (macOS)
       if: runner.os == 'macOS'
       run: |
-        brew install filosottile/musl-cross/musl-cross zig
+        brew install filosottile/musl-cross/musl-cross
         rustup target add aarch64-unknown-linux-musl
-        cargo install --git https://github.com/mathetake/alvm --rev ea6d3a1
     - name: Rust build caching
       uses: Swatinem/rust-cache@v2
       with:
@@ -71,9 +70,33 @@ jobs:
       run: ./test_cross_linux_host.sh
     - name: Run cross-compilation tests (macOS)
       if: runner.os == 'macOS'
+      id: macos-cross
       run: ./test_cross_macos_host.sh
+    - name: Upload macOS cross-compiled artifact
+      if: runner.os == 'macOS'
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-cross-linux-binary
+        path: ver-stub-example/target/aarch64-unknown-linux-musl/debug/ver-stub-example.bin
+        retention-days: 1
     - name: Check dirty git
       uses: ./.github/actions/check-dirty-git
+
+  test-macos-cross-artifact:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install QEMU
+      run: sudo apt-get update && sudo apt-get install -y qemu-user-static
+    - name: Download macOS cross-compiled artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: macos-cross-linux-binary
+        path: ./artifact
+    - name: Run macOS-cross-compiled binary on Linux
+      run: ./test_run_macos_artifact.sh ./artifact/ver-stub-example.bin
 
   lint:
     runs-on: ubuntu-latest

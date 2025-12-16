@@ -101,10 +101,13 @@ else
     fail "patched Linux binary should have ver_stub section"
 fi
 
-# Run the patched binary with alvm
+# Run the patched binary with alvm (local only - not available in CI)
 echo
 echo "--- Test: Run Linux binary with alvm ---"
-if ! command -v alvm &> /dev/null; then
+if [[ -n "$CI" ]]; then
+    warn "Running in CI - skipping alvm test (Hypervisor.framework not available in GitHub runners)"
+    warn "The artifact will be tested on a Linux runner instead"
+elif ! command -v alvm &> /dev/null; then
     warn "alvm not found - skipping runtime test"
     warn "Install with: cargo install alvm"
 else
@@ -119,6 +122,18 @@ else
         pass "Linux binary shows build timestamp"
     else
         fail "Linux binary should show build timestamp"
+    fi
+fi
+
+# Output artifact path for CI to upload
+if [[ -n "$CI" ]]; then
+    echo
+    echo "--- Artifact for CI ---"
+    ARTIFACT_PATH="$(cd "$(dirname "$LINUX_BIN_PATCHED")" && pwd)/$(basename "$LINUX_BIN_PATCHED")"
+    echo "MACOS_CROSS_ARTIFACT=$ARTIFACT_PATH"
+    # Write to GitHub Actions output if available
+    if [[ -n "$GITHUB_OUTPUT" ]]; then
+        echo "artifact_path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
     fi
 fi
 
