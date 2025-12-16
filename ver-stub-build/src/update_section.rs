@@ -18,6 +18,7 @@ pub struct UpdateSectionCommand {
     pub(crate) link_section: LinkSection,
     pub(crate) bin_path: PathBuf,
     pub(crate) new_name: Option<String>,
+    pub(crate) dry_run: bool,
 }
 
 impl UpdateSectionCommand {
@@ -32,6 +33,12 @@ impl UpdateSectionCommand {
     /// If not called, the default name is `{original_name}.bin`.
     pub fn with_filename(mut self, name: impl Into<String>) -> Self {
         self.new_name = Some(name.into());
+        self
+    }
+
+    /// Set (or unset) the dry_run flag.
+    pub fn dry_run(mut self, val: bool) -> Self {
+        self.dry_run = val;
         self
     }
 
@@ -82,13 +89,17 @@ impl UpdateSectionCommand {
             path.to_path_buf()
         };
 
-        let llvm = LlvmTools::new().unwrap_or_else(|e| {
+        let mut llvm = LlvmTools::new().unwrap_or_else(|e| {
             panic!(
                 "ver-stub-build: could not find LLVM tools directory: {}\n\
                  Please install llvm-tools: rustup component add llvm-tools",
                 e
             )
         });
+
+        if self.dry_run {
+            llvm.set_dry_run(true);
+        }
 
         // Get section info from the binary
         let section_info = llvm
@@ -106,7 +117,7 @@ impl UpdateSectionCommand {
                 // Warn if section is writable (should be read-only for security)
                 if info.is_writable {
                     cargo_warning(&format!(
-                        "section '{}' is writable; consider placing it in a read-only segment",
+                        "section '{}' is writable; this is a minor bug, it should be in a read-only segment",
                         SECTION_NAME
                     ));
                 }
@@ -130,10 +141,12 @@ impl UpdateSectionCommand {
                         e
                     )
                 });
-                eprintln!(
-                    "ver-stub-build: wrote patched binary to {}",
-                    output_path.display()
-                );
+                if !self.dry_run {
+                    eprintln!(
+                        "ver-stub-build: wrote patched binary to {}",
+                        output_path.display()
+                    );
+                }
             }
             None => {
                 // Section doesn't exist, copy binary without modification
@@ -142,15 +155,22 @@ impl UpdateSectionCommand {
                     SECTION_NAME,
                     self.bin_path.display()
                 ));
-                fs::copy(&self.bin_path, &output_path).unwrap_or_else(|e| {
-                    panic!(
-                        "ver-stub-build: failed to copy {} to {}: {}",
-                        self.bin_path.display(),
-                        output_path.display(),
-                        e
-                    )
-                });
-                eprintln!("ver-stub-build: copied to {}", output_path.display());
+                if !self.dry_run {
+                    fs::copy(&self.bin_path, &output_path).unwrap_or_else(|e| {
+                        panic!(
+                            "ver-stub-build: failed to copy {} to {}: {}",
+                            self.bin_path.display(),
+                            output_path.display(),
+                            e
+                        )
+                    });
+                    eprintln!("ver-stub-build: copied to {}", output_path.display());
+                } else {
+                    eprintln!(
+                        "Command: {{ program: \"cp\", args: [\"cp\", {:?}, {:?}] }}",
+                        self.bin_path, output_path
+                    );
+                }
             }
         }
     }

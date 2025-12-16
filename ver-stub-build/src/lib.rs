@@ -391,6 +391,7 @@ impl LinkSection {
             link_section: self,
             bin_path: binary_path.as_ref().to_path_buf(),
             new_name: None,
+            dry_run: false,
         }
     }
 

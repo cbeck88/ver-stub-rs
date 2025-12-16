@@ -92,6 +92,10 @@ enum Command {
         /// Defaults to the input file's parent directory.
         #[conf(short, long)]
         output: Option<PathBuf>,
+
+        /// Do a dry run and log objcopy commands rather than actually executing them
+        #[conf(long)]
+        dry_run: bool,
     },
 
     /// Print the platform-specific linker section name and exit.
@@ -166,7 +170,6 @@ fn main() {
 
     let args = Args::parse();
 
-    // Error if --output is specified with a subcommand
     if args.output.is_some() && args.command.is_some() {
         eprintln!(
             "error: when using patch command, top-level --output flag is ignored; \
@@ -181,16 +184,15 @@ fn main() {
         Some(Command::Patch {
             ref input,
             ref output,
+            dry_run,
         }) => {
             let output_path = output
                 .clone()
                 .unwrap_or_else(|| input.parent().unwrap().to_path_buf());
-            section.patch_into(input).write_to(&output_path);
-            eprintln!(
-                "ver-stub: patched {} -> {}",
-                input.display(),
-                output_path.display()
-            );
+            section
+                .patch_into(input)
+                .dry_run(dry_run)
+                .write_to(&output_path);
         }
         Some(Command::PrintSectionName) => {
             println!("{}", ver_stub_build::SECTION_NAME);

@@ -26,13 +26,23 @@ pub struct SectionInfo {
 /// and modifying ELF sections in binaries.
 pub struct LlvmTools {
     bin_dir: PathBuf,
+    dry_run: bool,
 }
 
 impl LlvmTools {
     /// Creates a new `LlvmTools` instance by locating the LLVM tools directory.
     pub fn new() -> Result<Self, String> {
         let bin_dir = rustc::llvm_tools_bin_dir()?;
-        Ok(Self { bin_dir })
+        Ok(Self {
+            bin_dir,
+            dry_run: false,
+        })
+    }
+
+    /// Set the dry_run flag
+    /// This enables verbose output for commands, and prevents objcopy commands from actually running
+    pub fn set_dry_run(&mut self, v: bool) {
+        self.dry_run = v;
     }
 
     /// Gets information about a section in a binary.
@@ -47,10 +57,15 @@ impl LlvmTools {
         let bin = bin.as_ref();
         let readobj_path = self.bin_dir.join(format!("llvm-readobj{}", EXE_SUFFIX));
 
-        let output = Command::new(&readobj_path)
-            .arg("--sections")
-            .arg(bin)
-            .output()?;
+        let mut cmd = Command::new(&readobj_path);
+        cmd.arg("--sections");
+        cmd.arg(bin);
+
+        if self.dry_run {
+            eprintln!("{cmd:#?}");
+        }
+
+        let output = cmd.output()?;
 
         if !output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -115,12 +130,18 @@ impl LlvmTools {
         let objcopy_path = self.bin_dir.join(format!("llvm-objcopy{}", EXE_SUFFIX));
         let update_arg = format!("{}={}", section_name, section_file.display());
 
-        let cmd_output = Command::new(&objcopy_path)
-            .arg("--update-section")
-            .arg(&update_arg)
-            .arg(input)
-            .arg(output)
-            .output()?;
+        let mut cmd = Command::new(&objcopy_path);
+        cmd.arg("--update-section");
+        cmd.arg(&update_arg);
+        cmd.arg(input);
+        cmd.arg(output);
+
+        if self.dry_run {
+            eprintln!("{cmd:#?}");
+            return Ok(());
+        }
+
+        let cmd_output = cmd.output()?;
 
         if !cmd_output.status.success() {
             let stdout = String::from_utf8_lossy(&cmd_output.stdout);
@@ -161,15 +182,21 @@ impl LlvmTools {
         let objcopy_path = self.bin_dir.join(format!("llvm-objcopy{}", EXE_SUFFIX));
         let update_arg = format!("{}=/dev/stdin", section_name);
 
-        let mut child = Command::new(&objcopy_path)
-            .arg("--update-section")
-            .arg(&update_arg)
-            .arg(input)
-            .arg(output)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
+        let mut cmd = Command::new(&objcopy_path);
+        cmd.arg("--update-section");
+        cmd.arg(&update_arg);
+        cmd.arg(input);
+        cmd.arg(output);
+        cmd.stdin(Stdio::piped());
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+
+        if self.dry_run {
+            eprintln!("{cmd:#?}");
+            return Ok(());
+        }
+
+        let mut child = cmd.spawn()?;
 
         // Write bytes to stdin and close the pipe
         let mut stdin = child
@@ -225,12 +252,18 @@ impl LlvmTools {
         let objcopy_path = self.bin_dir.join(format!("llvm-objcopy{}", EXE_SUFFIX));
         let update_arg = format!("{}={}", section_name, temp_file.path().display());
 
-        let cmd_output = Command::new(&objcopy_path)
+        let cmd = Command::new(&objcopy_path)
             .arg("--update-section")
             .arg(&update_arg)
             .arg(input)
-            .arg(output)
-            .output()?;
+            .arg(output);
+
+        if self.dry_run {
+            eprintln!("{cmd:#?}");
+            return Ok(());
+        }
+
+        let cmd_output = cmd.output()?;
 
         if !cmd_output.status.success() {
             let stdout = String::from_utf8_lossy(&cmd_output.stdout);
