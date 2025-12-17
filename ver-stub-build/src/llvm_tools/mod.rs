@@ -13,8 +13,11 @@ use parsing::{parse_coff_sections, parse_elf_sections, parse_macho_sections};
 /// Binary format detected from llvm-readobj output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinaryFormat {
+    /// ELF
     Elf,
+    /// Mach-O
     MachO,
+    /// PE/COFF
     Coff,
 }
 

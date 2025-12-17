@@ -1,21 +1,25 @@
 //! Runtime access to version data injected via a link section.
 //!
-//! This crate provides a way to access build-time information that has been
-//! injected into the binary via a link section
-//! (`ver_stub` on ELF/COFF, `__TEXT,ver_stub` on Mach-O).
+//! This crate provides access to build-time information that has been
+//! injected into the binary via a custom link section.
 //!
 //! Use its functions
 //!
 //! ```ignore
 //! fn git_sha() -> Option<&str>;
 //! fn git_describe() -> Option<&str>;
-//! fn build_timestamp() -> Option<&str>;
-//! ...
+//! fn git_branch() -> Option<&'static str>;
+//! fn git_commit_timestamp() -> Option<&'static str>;
+//! fn git_commit_date() -> Option<&'static str>;
+//! fn git_commit_msg() -> Option<&'static str>;
+//! fn build_timestamp() -> Option<&'static str>;
+//! fn build_date() -> Option<&'static str>;
+//! fn custom() -> Option<&'static str>;
 //! ```
 //!
 //! to read fields from the section if they are present.
 //!
-//! Then use `ver-stub-build` or `ver-stub-tool` to write the link section into the
+//! Then use [`ver-stub-build`](https://docs.rs/ver-stub-build/latest) or [`ver-stub-tool`](https://docs.rs/ver-stub-tool/latest) to write the link section into the
 //! binary at the end of your build.
 //!
 //! ## Details

@@ -1,4 +1,4 @@
-//! Write the section format used by `ver-stub`, and inject it into binaries.
+//! Write the section format used by [`ver_stub`], and inject it into binaries.
 //!
 //! This crate can be used from
 //! - `build.rs` scripts
@@ -6,9 +6,9 @@
 //!
 //! # Quickstart
 //!
-//! Create a LinkSection, tell it what contents you want it to have, and then
-//! do something with it -- either write the bytes out to a file, or patch it
-//! into a binary that is using `ver-stub`.
+//! Create a [`LinkSection`], tell it what contents you want it to have, and then
+//! do something with it -- either write the bytes out to a file, or patch them
+//! into a binary that is using [`ver_stub`].
 //!
 //! In your build.rs:
 //! ```ignore
@@ -39,12 +39,12 @@
 //! }
 //! ```
 //!
-//! NOTE: `patch_into_bin_dep` requires cargo's unstable artifact dependencies feature.
+//! NOTE: [`LinkSection::patch_into_bin_dep`] requires cargo's unstable artifact dependencies feature.
 //! You must use nightly cargo, and enable "bindeps" in `.cargo/config.toml`.
-//! Then it finds file to be patched using `CARGO_BIN_FILE_*` env vars.
+//! Then it finds the file to be patched using `CARGO_BIN_FILE_*` env vars.
 //!
 //! More generally, you can use it without artifact dependencies, to do things
-//! similar to what ver-stub-tool does.
+//! similar to what [`ver-stub-tool`](https://docs.rs/ver-stub-tool/latest) does.
 //!
 //! ```ignore
 //! use ver_stub_build::LinkSection;
@@ -72,6 +72,8 @@
 //!         .unwrap();
 //! }
 //! ```
+
+#![deny(missing_docs)]
 
 /// Cargo build script helper functions.
 mod cargo_helpers;

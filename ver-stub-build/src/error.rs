@@ -6,6 +6,7 @@ use std::io;
 use std::path::PathBuf;
 
 /// Error type for ver-stub-build operations.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub enum Error {
     /// Failed to write section data file.
