@@ -15,6 +15,7 @@ This is particularly helpful if:
 
 * You have multiple binaries in your workspace and rebuilding them all is slow
 * You are using build options like LTO which push a lot of work to link time
+* Your company's release build takes 90 minutes, and you just realized it was tagged incorrectly
 
 When I used the popular [`vergen`](https://github.com/rustyhorde/vergen) crate to embed this data, I often found myself frustrated
 because actions like `git commit`, `git tag` or `git checkout -b` would cause the next `cargo build`
