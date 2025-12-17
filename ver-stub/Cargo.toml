@@ -1,6 +1,6 @@
 [package]
 name = "ver-stub"
-version = "0.2.1"
+version = "0.3.0"
 description = "Runtime access to version data injected via link section"
 readme = "README.md"
 links = ".ver_stub"

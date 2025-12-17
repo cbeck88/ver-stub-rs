@@ -1,6 +1,6 @@
 [package]
 name = "ver-stub-build"
-version = "0.2.1"
+version = "0.3.0"
 description = "Build script helper for injecting version data into binaries"
 readme = "README.md"
 authors.workspace = true
@@ -14,7 +14,7 @@ include.workspace = true
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std", "now"] }
 heck = "0.5"
-ver-stub = { path = "../ver-stub", version = "0.2.1" }
+ver-stub = { path = "../ver-stub", version = "0.3.0" }
 
 [target.'cfg(windows)'.dependencies]
 tempfile = "3"

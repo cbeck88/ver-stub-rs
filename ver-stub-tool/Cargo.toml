@@ -1,6 +1,6 @@
 [package]
 name = "ver-stub-tool"
-version = "0.2.1"
+version = "0.3.0"
 description = "CLI tool for injecting version data into binaries"
 readme = "README.md"
 authors.workspace = true
@@ -16,4 +16,4 @@ path = "src/main.rs"
 
 [dependencies]
 conf = { version = "0.4.4", default-features = false }
-ver-stub-build = { path = "../ver-stub-build", version = "0.2.1" }
+ver-stub-build = { path = "../ver-stub-build", version = "0.3.0" }
