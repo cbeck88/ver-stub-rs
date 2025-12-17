@@ -38,7 +38,11 @@ runtime your program safely reports that it doesn't have build information avail
 There are several possible workflows to perform the patching, but the main ones use `llvm-tools` installed by `rustup`
 which match the version of llvm used by your version of `rustc`, on whatever platform you are working on.
 
-CI covers linux, mac, and windows at time of writing, as well as linux cross-compiling from x86-64 to arm64.
+CI covers linux, mac, and windows at time of writing, as well as a few cross-compiles:
+
+* linux cross-compiling from x86-64 to arm64
+* macos cross-compiling to linux
+* macos cross-compiling to ios
 
 ## Quickstart
 
