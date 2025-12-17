@@ -77,19 +77,19 @@ const _: () = assert!(
 /// The section name used for version data (platform-specific).
 ///
 /// On ELF (Linux, etc.) and COFF (Windows): `ver_stub`
-/// On Mach-O (macOS): `__TEXT,ver_stub`
+/// On Mach-O (macOS, iOS): `__TEXT,ver_stub`
 ///
 /// This is useful for scripts that need to use `cargo objcopy` directly.
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 pub const SECTION_NAME: &str = "__TEXT,ver_stub";
 
 /// The section name used for version data (platform-specific).
 ///
 /// On ELF (Linux, etc.) and COFF (Windows): `ver_stub`
-/// On Mach-O (macOS): `__TEXT,ver_stub`
+/// On Mach-O (macOS, iOS): `__TEXT,ver_stub`
 ///
 /// This is useful for scripts that need to use `cargo objcopy` directly.
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 pub const SECTION_NAME: &str = "ver_stub";
 
 /// Static buffer for version data, placed in a custom link section.
@@ -97,8 +97,14 @@ pub const SECTION_NAME: &str = "ver_stub";
 // Note: We use "links" in the cargo toml for this crate to try to ensure that
 // only one version of this crate appears in the build graph, and so only one
 // version of the BUFFER exists, and BUFFER_SIZE = section size.
-#[cfg_attr(target_os = "macos", unsafe(link_section = "__TEXT,ver_stub"))]
-#[cfg_attr(not(target_os = "macos"), unsafe(link_section = "ver_stub"))]
+#[cfg_attr(
+    any(target_os = "macos", target_os = "ios"),
+    unsafe(link_section = "__TEXT,ver_stub")
+)]
+#[cfg_attr(
+    not(any(target_os = "macos", target_os = "ios")),
+    unsafe(link_section = "ver_stub")
+)]
 #[used]
 static BUFFER: [u8; BUFFER_SIZE] = [0u8; BUFFER_SIZE];
 

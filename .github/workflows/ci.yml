@@ -54,6 +54,9 @@ jobs:
       run: |
         brew install filosottile/musl-cross/musl-cross
         rustup target add aarch64-unknown-linux-musl
+    - name: Install iOS target (macOS)
+      if: runner.os == 'macOS'
+      run: rustup target add aarch64-apple-ios
     - name: Rust build caching
       uses: Swatinem/rust-cache@v2
       with:
@@ -72,6 +75,9 @@ jobs:
       if: runner.os == 'macOS'
       id: macos-cross
       run: ./test_cross_macos_host.sh
+    - name: Run iOS build tests (macOS)
+      if: runner.os == 'macOS'
+      run: ./test_ios_build.sh
     - name: Upload macOS cross-compiled artifact
       if: runner.os == 'macOS'
       uses: actions/upload-artifact@v4
