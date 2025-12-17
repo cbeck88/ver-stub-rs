@@ -9,15 +9,10 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub enum Error {
     /// Failed to write section data file.
-    WriteSectionFile {
-        path: PathBuf,
-        source: io::Error,
-    },
+    WriteSectionFile { path: PathBuf, source: io::Error },
 
     /// Failed to find LLVM tools.
-    LlvmToolsNotFound {
-        source: io::Error,
-    },
+    LlvmToolsNotFound { source: io::Error },
 
     /// Failed to get section info from binary.
     GetSectionInfo {
@@ -58,7 +53,10 @@ impl fmt::Display for Error {
                     source
                 )
             }
-            Error::GetSectionInfo { binary_path, source } => {
+            Error::GetSectionInfo {
+                binary_path,
+                source,
+            } => {
                 write!(
                     f,
                     "failed to find section from {}: {}",
@@ -66,7 +64,10 @@ impl fmt::Display for Error {
                     source
                 )
             }
-            Error::UpdateSection { binary_path, source } => {
+            Error::UpdateSection {
+                binary_path,
+                source,
+            } => {
                 write!(
                     f,
                     "failed to update section in {}: {}",
