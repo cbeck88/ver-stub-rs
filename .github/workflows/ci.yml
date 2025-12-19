@@ -86,7 +86,7 @@ jobs:
         path: ver-stub-example/target/aarch64-unknown-linux-musl/debug/ver-stub-example.bin
         retention-days: 1
     - name: Check dirty git
-      uses: ./.github/actions/check-dirty-git
+      uses: cbeck88/check-dirty-git@v1
 
   test-macos-cross-artifact:
     needs: build-and-test
